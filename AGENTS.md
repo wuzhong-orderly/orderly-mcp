@@ -36,6 +36,7 @@ This is a Model Context Protocol (MCP) server that provides Orderly Network docu
 - `indexerApi.ts` - Indexer API documentation
 - `componentGuides.ts` - Component building guides
 - `orderlyOneApi.ts` - Orderly One API documentation
+- `svApi.ts` - Strategy Vault API documentation
 
 **Data** (`src/data/*.json`):
 
@@ -118,6 +119,7 @@ src/
 │   ├── api.json               # API docs
 │   ├── indexer-api.json       # Indexer API docs
 │   ├── orderly-one-api.json   # Orderly One API documentation
+│   ├── sv-api.json             # Strategy Vault API documentation
 │   ├── component-guides.json   # Component guides
 │   └── resources/
 │       └── overview.md
@@ -379,7 +381,7 @@ Filters out non-group chats and applies blacklist.
 #### `scripts/generate_api_from_openapi.js`
 
 **Purpose:** Generate REST and WebSocket API documentation from OpenAPI spec  
-**Input:** OpenAPI YAML spec from GitHub (`https://raw.githubusercontent.com/OrderlyNetwork/documentation-public/.../evm.openapi.yaml`)  
+**Input:** OpenAPI YAML spec from GitHub (`https://raw.githubusercontent.com/OrderlyNetwork/documentation-public/refs/heads/main/orderly.openapi.yaml`)  
 **Output:** `src/data/api.json`  
 **Cost:** **FREE** (no AI calls, direct YAML parsing)
 
@@ -399,6 +401,29 @@ Extracts 12 endpoints across 3 categories:
 - **Rankings**: Positions, PnL, trading volume, deposits/withdrawals
 
 Also extracts 43 schemas for request/response types.
+
+#### `scripts/generate_sv_api.js`
+
+**Purpose:** Generate Strategy Vault API documentation from OpenAPI spec  
+**Input:** OpenAPI YAML spec from GitHub (`https://raw.githubusercontent.com/OrderlyNetwork/documentation-public/refs/heads/main/sv.openapi.yaml`)  
+**Output:** `src/data/sv-api.json`  
+**Cost:** **FREE** (no AI calls, direct YAML parsing)
+
+Extracts 23 endpoints across 5 categories:
+
+- **Strategy Vault Info**: Vault info, performance, positions, orders, trade history
+- **Strategy Provider**: Provider info, fees, claimable amounts, transaction history
+- **Fund Management**: Fund info, period history, pending transactions
+- **Liquidity Provider**: LP info, fees, performance, claim info
+- **User**: User-level overview statistics across all strategy vaults
+
+Also extracts 24 schemas for response types.
+
+**Usage:**
+
+```bash
+node scripts/generate_sv_api.js
+```
 
 #### `scripts/generate_orderly_one_api.js`
 
@@ -441,6 +466,7 @@ node scripts/generate_orderly_one_api.js
 - Data generation: ~$2.00-4.00
 - API generation: **FREE** (parses OpenAPI specs directly)
 - Indexer API generation: **FREE** (parses OpenAPI spec directly)
+- SV API generation: **FREE** (parses OpenAPI spec directly)
 - Orderly One API generation: **FREE** (parses OpenAPI spec directly)
 
 **Money-saving tips:**

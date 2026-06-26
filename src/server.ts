@@ -13,6 +13,7 @@ import { getApiInfo } from './tools/apiInfo.js';
 import { getIndexerApiInfo } from './tools/indexerApi.js';
 import { getComponentGuide } from './tools/componentGuides.js';
 import { getOrderlyOneApiInfo } from './tools/orderlyOneApi.js';
+import { getSvApiInfo } from './tools/svApi.js';
 import { getResource } from './resources/index.js';
 
 // Common result type for all tools
@@ -201,6 +202,26 @@ export function createMcpServer(): Server {
             },
           },
         },
+        {
+          name: 'get_strategy_vault_api_info',
+          description:
+            'Get information about Orderly Strategy Vault API for yield optimization, strategy providers, and liquidity providers',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              endpoint: {
+                type: 'string',
+                description:
+                  "Specific endpoint path or name (e.g., '/v1/public/strategy_vault/vault/info', 'sp/info')",
+              },
+              category: {
+                type: 'string',
+                description:
+                  "Filter by category (e.g., 'vault', 'strategy_provider', 'liquidity_provider', 'fund', 'user')",
+              },
+            },
+          },
+        },
       ],
     };
   });
@@ -273,6 +294,13 @@ export function createMcpServer(): Server {
 
         case 'get_orderly_one_api_info':
           result = (await getOrderlyOneApiInfo(
+            args.endpoint as string | undefined,
+            args.category as string | undefined
+          )) as ToolResult;
+          break;
+
+        case 'get_strategy_vault_api_info':
+          result = (await getSvApiInfo(
             args.endpoint as string | undefined,
             args.category as string | undefined
           )) as ToolResult;

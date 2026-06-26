@@ -1,0 +1,2380 @@
+{
+  "version": "1.0.0",
+  "title": "Orderly Strategy Vault API",
+  "description": "Strategy Vault is a yield optimization layer on top of Orderly Network. It allows strategy providers to create and manage automated trading strategies, while liquidity providers can allocate capital to these vaults to earn yields.",
+  "baseUrl": "https://api.orderly.org",
+  "categories": [
+    {
+      "name": "Strategy Vault Info",
+      "description": "Information about strategy vaults, their performance, and overall statistics.",
+      "endpoints": [
+        {
+          "path": "/v1/public/strategy_vault/vault/info",
+          "method": "GET",
+          "summary": "Get Strategy Vault Info",
+          "description": "GET /v1/public/strategy_vault/vault/info",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "return all if empty",
+              "example": null
+            },
+            {
+              "name": "status",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "return all if no filter",
+              "example": null
+            },
+            {
+              "name": "broker_ids",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "can filter multiple broker_id per query.",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"vault_id\": {\n                    \"type\": \"string\",\n                    \"example\": \"\"\n                  },\n                  \"vault_address\": {\n                    \"type\": \"string\",\n                    \"example\": \"\"\n                  },\n                  \"vault_type\": {\n                    \"type\": \"string\",\n                    \"example\": \"protocol\"\n                  },\n                  \"vault_name\": {\n                    \"type\": \"string\",\n                    \"example\": \"Orderly OmniVault\"\n                  },\n                  \"description\": {\n                    \"type\": \"string\",\n                    \"example\": \"Earn passive yields effortlessly, no trading expertise required. Deposit...\"\n                  },\n                  \"sp_address\": {\n                    \"type\": \"string\",\n                    \"example\": \"xxxxxxx\"\n                  },\n                  \"sp_name\": {\n                    \"type\": \"string\",\n                    \"description\": \"return null if not set\",\n                    \"example\": \"yyyy\"\n                  },\n                  \"asset\": {\n                    \"type\": \"string\",\n                    \"example\": \"USDC\"\n                  },\n                  \"vault_age\": {\n                    \"type\": \"number\",\n                    \"description\": \"From period 0 start time to current time; in terms of day.\",\n                    \"example\": 180\n                  },\n                  \"status\": {\n                    \"type\": \"string\",\n                    \"description\": \"`live` / `pre_launch` / `closing` / `closed`\",\n                    \"example\": \"live\"\n                  },\n                  \"vault_start_time\": {\n                    \"type\": \"number\",\n                    \"description\": \"First period start time\",\n                    \"example\": 1702989203989\n                  },\n                  \"performance_fee_rate\": {\n                    \"type\": \"number\",\n                    \"example\": 0.3\n                  },\n                  \"supported_chains\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\",\n                      \"properties\": {\n                        \"chain_id\": {\n                          \"type\": \"string\",\n                          \"example\": \"1\"\n                        },\n                        \"chain_name\": {\n                          \"type\": \"string\",\n                          \"example\": \"Ethereum\"\n                        }\n                      }\n                    },\n                    \"example\": [\n                      {\n                        \"chain_id\": \"1\",\n                        \"chain_name\": \"Ethereum\"\n                      },\n                      {\n                        \"chain_id\": \"42161\",\n                        \"chain_name\": \"Arbitrum\"\n                      },\n                      {\n                        \"chain_id\": \"8453\",\n                        \"chain_name\": \"Base\"\n                      },\n                      {\n                        \"chain_id\": \"10\",\n                        \"chain_name\": \"Optimism\"\n                      },\n                      {\n                        \"chain_id\": \"137\",\n                        \"chain_name\": \"Polygon\"\n                      }\n                    ]\n                  },\n                  \"tvl\": {\n                    \"type\": \"number\",\n                    \"example\": 123456789\n                  },\n                  \"valid_hpr\": {\n                    \"type\": \"number\",\n                    \"example\": 30\n                  },\n                  \"30d_apy\": {\n                    \"type\": \"number\",\n                    \"example\": 0.24\n                  },\n                  \"recovery_30d_apy\": {\n                    \"type\": \"number\",\n                    \"example\": 0\n                  },\n                  \"vault_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"example\": 123456\n                  },\n                  \"lp_counts\": {\n                    \"type\": \"number\",\n                    \"example\": 1204\n                  },\n                  \"total_main_shares\": {\n                    \"type\": \"number\",\n                    \"example\": 123456789\n                  },\n                  \"lifetime_apy\": {\n                    \"type\": \"number\",\n                    \"example\": 0.21\n                  },\n                  \"lock_duration\": {\n                    \"type\": \"number\",\n                    \"example\": 48\n                  },\n                  \"min_deposit_amount\": {\n                    \"type\": \"number\",\n                    \"example\": 10\n                  },\n                  \"min_withdrawal_amount\": {\n                    \"type\": \"number\",\n                    \"example\": 10\n                  },\n                  \"gate_threshold_pct\": {\n                    \"type\": \"number\",\n                    \"example\": 0.1\n                  },\n                  \"gate_triggered\": {\n                    \"type\": \"boolean\",\n                    \"example\": false\n                  },\n                  \"broker_id\": {\n                    \"type\": \"string\",\n                    \"example\": \"orderly\"\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/info';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/vault/performance",
+          "method": "GET",
+          "summary": "Get Strategy Vault Performance",
+          "description": "GET /v1/public/strategy_vault/vault/performance",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"time_range\": {\n                    \"type\": \"string\"\n                  },\n                  \"incremental_net_pnl\": {\n                    \"type\": \"number\"\n                  },\n                  \"max_drawdown\": {\n                    \"type\": \"number\"\n                  },\n                  \"pnl_max_drawdown\": {\n                    \"type\": \"number\"\n                  },\n                  \"fees\": {\n                    \"type\": \"number\"\n                  },\n                  \"volume\": {\n                    \"type\": \"number\"\n                  }\n                },\n                \"example\": [\n                  {\n                    \"time_range\": \"24h\",\n                    \"incremental_net_pnl\": 5678.9,\n                    \"max_drawdown\": 0.015,\n                    \"pnl_max_drawdown\": 0.012,\n                    \"fees\": 1234.5,\n                    \"volume\": 456789\n                  },\n                  {\n                    \"time_range\": \"7d\",\n                    \"incremental_net_pnl\": -45678.9,\n                    \"max_drawdown\": 0.02,\n                    \"pnl_max_drawdown\": 0.04,\n                    \"fees\": 7890.5,\n                    \"volume\": 1234567\n                  },\n                  {\n                    \"time_range\": \"30d\",\n                    \"incremental_net_pnl\": 172567.73,\n                    \"max_drawdown\": 0.0253,\n                    \"pnl_max_drawdown\": 0.0051,\n                    \"fees\": 56789,\n                    \"volume\": 3456789\n                  },\n                  {\n                    \"time_range\": \"all_time\",\n                    \"incremental_net_pnl\": 1234567.89,\n                    \"max_drawdown\": 0.03,\n                    \"pnl_max_drawdown\": 0.08,\n                    \"fees\": 98765,\n                    \"volume\": 9876543\n                  }\n                ]\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/performance';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/vault/performance_chart",
+          "method": "GET",
+          "summary": "Get Strategy Vault TVL/PnL History",
+          "description": "GET /v1/public/strategy_vault/vault/performance_chart",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "type",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "`PNL` / `TVL`",
+              "example": null
+            },
+            {
+              "name": "time_range",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "`24h` / `7d` / `30d` / `all_time`",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"timestamp\": {\n                    \"type\": \"number\",\n                    \"example\": 1734307200000\n                  },\n                  \"value\": {\n                    \"type\": \"number\",\n                    \"example\": 1400000\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/performance_chart';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/vault/overall_info",
+          "method": "GET",
+          "summary": "Get Overall Statistics of all Strategy Vaults",
+          "description": "GET /v1/public/strategy_vault/vault/overall_info",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "broker_ids",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "return all if no filter. can filter multiple broker_id per query",
+              "example": "orderly,woofi_pro,aden"
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"strategy_vaults_tvl\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum tvl of all vaults\",\n                    \"example\": 1234567.89\n                  },\n                  \"strategy_vaults_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum lifetime net pnl of all vaults\",\n                    \"example\": 350000.21\n                  },\n                  \"strategy_vaults_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"With status == live & closing. status == closed will not be included in this count.\",\n                    \"example\": 8\n                  },\n                  \"strategy_vaults_lp_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum of LP count of all SV. e.g. address 0x…123 deposited in vault A & vault B will be counted as 2\",\n                    \"example\": 1234\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/overall_info';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/vault/liquidator_history",
+          "method": "GET",
+          "summary": "Get Strategy Vault Liquidator History",
+          "description": "Liquidated positions of liquidator\n\n\n\nGET /v1/public/strategy_vault/vault/liquidator_history",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "symbol",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "only 1 at a time",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"liquidation_id\": {\n                    \"type\": \"number\",\n                    \"example\": 1728\n                  },\n                  \"timestamp\": {\n                    \"type\": \"number\",\n                    \"example\": 1685154032762\n                  },\n                  \"type\": {\n                    \"type\": \"string\",\n                    \"example\": \"liquidated\",\n                    \"description\": \"liquidated: claimed from user liquidated position, claimed: claimed from insuranceFund position\"\n                  },\n                  \"assigned\": {\n                    \"type\": \"number\",\n                    \"example\": 1,\n                    \"description\": \"1: refers to liquidated position assigned to liquidator, 0: refers to liquidated position initiated by liquidator\"\n                  },\n                  \"positions_by_perp\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\",\n                      \"properties\": {\n                        \"abs_liquidator_fee\": {\n                          \"type\": \"number\",\n                          \"example\": 1.152279\n                        },\n                        \"cost_position_transfer\": {\n                          \"type\": \"number\",\n                          \"example\": 65.84448\n                        },\n                        \"liquidator_fee\": {\n                          \"type\": \"number\",\n                          \"example\": 0.0175\n                        },\n                        \"position_qty\": {\n                          \"type\": \"number\",\n                          \"example\": 41.6\n                        },\n                        \"symbol\": {\n                          \"type\": \"string\",\n                          \"example\": \"PERP_NEAR_USDC\"\n                        },\n                        \"transfer_price\": {\n                          \"type\": \"number\",\n                          \"example\": 1.5828\n                        }\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/liquidator_history';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/vault/positions",
+          "method": "GET",
+          "summary": "Get Strategy Vault Positions",
+          "description": "GET /v1/public/strategy_vault/vault/positions",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"exchange\": {\n                    \"type\": \"string\",\n                    \"example\": \"orderly\"\n                  },\n                  \"symbol\": {\n                    \"type\": \"string\",\n                    \"example\": \"PERP_BTC_USDC\"\n                  },\n                  \"position_qty\": {\n                    \"type\": \"number\",\n                    \"example\": -5\n                  },\n                  \"average_open_price\": {\n                    \"type\": \"number\",\n                    \"example\": 27908.14386047\n                  },\n                  \"mark_price\": {\n                    \"type\": \"number\",\n                    \"example\": 27794.9\n                  },\n                  \"est_liq_price\": {\n                    \"type\": \"number\",\n                    \"example\": 117335.92899428\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/positions';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/vault/open_orders",
+          "method": "GET",
+          "summary": "Get Strategy Vault Open Orders",
+          "description": "GET /v1/public/strategy_vault/vault/open_orders\n\nIncludes both normal & algo orders",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "symbol",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "one symbol at a time",
+              "example": null
+            },
+            {
+              "name": "sort_by",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "`ascending` / `descending` (default) on updated_time",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"exchange\": {\n                    \"type\": \"string\",\n                    \"example\": \"orderly\"\n                  },\n                  \"order_id\": {\n                    \"type\": \"number\",\n                    \"example\": 78151\n                  },\n                  \"created_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1653563963000\n                  },\n                  \"updated_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1653564213000\n                  },\n                  \"type\": {\n                    \"type\": \"string\",\n                    \"example\": \"LIMIT\"\n                  },\n                  \"symbol\": {\n                    \"type\": \"string\",\n                    \"example\": \"PERP_WOO_USDC\"\n                  },\n                  \"side\": {\n                    \"type\": \"string\",\n                    \"example\": \"BUY\"\n                  },\n                  \"quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"price\": {\n                    \"type\": \"number\",\n                    \"example\": 0.67772\n                  },\n                  \"amount\": {\n                    \"type\": \"number\",\n                    \"example\": 10\n                  },\n                  \"executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"total_executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"average_executed_price\": {\n                    \"type\": \"number\",\n                    \"example\": 0.67772\n                  },\n                  \"status\": {\n                    \"type\": \"string\",\n                    \"example\": \"NEW\"\n                  },\n                  \"is_triggered\": {\n                    \"type\": \"string\",\n                    \"example\": \"false\"\n                  },\n                  \"child_orders\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\"\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/open_orders';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/vault/trade_history",
+          "method": "GET",
+          "summary": "Get Strategy Vault Trade History",
+          "description": "GET /v1/public/strategy_vault/vault/trade_history",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "symbol",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "one symbol at a time",
+              "example": null
+            },
+            {
+              "name": "sort_by",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "`ascending` / `descending` (default)",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"exchange\": {\n                    \"type\": \"string\",\n                    \"example\": \"orderly\"\n                  },\n                  \"id\": {\n                    \"type\": \"number\",\n                    \"example\": 2\n                  },\n                  \"symbol\": {\n                    \"type\": \"string\",\n                    \"example\": \"PERP_BTC_USDC\"\n                  },\n                  \"fee\": {\n                    \"type\": \"number\",\n                    \"example\": 0.0001\n                  },\n                  \"fee_asset\": {\n                    \"type\": \"string\",\n                    \"example\": \"USDC\"\n                  },\n                  \"side\": {\n                    \"type\": \"string\",\n                    \"example\": \"BUY\"\n                  },\n                  \"order_id\": {\n                    \"type\": \"number\",\n                    \"example\": 1\n                  },\n                  \"executed_price\": {\n                    \"type\": \"number\",\n                    \"example\": 123\n                  },\n                  \"executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 0.05\n                  },\n                  \"executed_timestamp\": {\n                    \"type\": \"number\",\n                    \"example\": 1567382401000\n                  },\n                  \"is_maker\": {\n                    \"type\": \"number\",\n                    \"example\": 1\n                  },\n                  \"realized_pnl\": {\n                    \"type\": \"number\",\n                    \"example\": 0\n                  },\n                  \"match_id\": {\n                    \"type\": \"number\",\n                    \"example\": 7386297591862811000\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/trade_history';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/vault/order_history",
+          "method": "GET",
+          "summary": "Get Strategy Vault Order History",
+          "description": "Include both normal & algo orders\n\n\n\nGET /v1/public/strategy_vault/vault/order_history",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "symbol",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "one symbol at a time",
+              "example": null
+            },
+            {
+              "name": "sort_by",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "`ascending` / `descending` (default) on updated_time",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"order_id\": {\n                    \"type\": \"number\",\n                    \"example\": 78151\n                  },\n                  \"created_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1653563963000\n                  },\n                  \"updated_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1653564213000\n                  },\n                  \"type\": {\n                    \"type\": \"string\",\n                    \"example\": \"LIMIT\"\n                  },\n                  \"symbol\": {\n                    \"type\": \"string\",\n                    \"example\": \"PERP_WOO_USDC\"\n                  },\n                  \"side\": {\n                    \"type\": \"string\",\n                    \"example\": \"BUY\"\n                  },\n                  \"quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"price\": {\n                    \"type\": \"number\",\n                    \"example\": 0.67772\n                  },\n                  \"amount\": {\n                    \"type\": \"number\",\n                    \"example\": 10\n                  },\n                  \"executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"total_executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"average_executed_price\": {\n                    \"type\": \"number\",\n                    \"example\": 0.67772\n                  },\n                  \"status\": {\n                    \"type\": \"string\",\n                    \"example\": \"NEW\"\n                  },\n                  \"is_triggered\": {\n                    \"type\": \"boolean\",\n                    \"example\": false\n                  },\n                  \"child_orders\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\"\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/order_history';\nfetch(url).then(res => res.json()).then(console.log);"
+        }
+      ]
+    },
+    {
+      "name": "Strategy Provider",
+      "description": "Endpoints for strategy providers to manage their strategies and view earnings.",
+      "endpoints": [
+        {
+          "path": "/v1/public/strategy_vault/sp/info",
+          "method": "GET",
+          "summary": "Get Strategy Provider’s Info",
+          "description": "GET /v1/public/strategy_vault/sp/info",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"sp_nav\": {\n              \"type\": \"number\",\n              \"example\": 56789\n            },\n            \"sp_tvl\": {\n              \"type\": \"number\",\n              \"example\": 56789\n            },\n            \"sp_total_strategy_shares\": {\n              \"type\": \"number\",\n              \"example\": 12700\n            },\n            \"sp_strategy_shares_pct\": {\n              \"type\": \"number\",\n              \"example\": 0.12\n            },\n            \"available_strategy_shares\": {\n              \"type\": \"number\",\n              \"example\": 12458.05\n            },\n            \"sp_lifetime_net_pnl\": {\n              \"type\": \"number\",\n              \"example\": 8888\n            },\n            \"potential_pnl\": {\n              \"type\": \"number\",\n              \"example\": 2567.73\n            },\n            \"sp_reserved_collateral\": {\n              \"type\": \"number\",\n              \"example\": 50000\n            },\n            \"sp_min_shares_pct\": {\n              \"type\": \"number\",\n              \"example\": 0.01\n            },\n            \"total_performance_fees\": {\n              \"type\": \"number\",\n              \"example\": 1.24\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/sp/info';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/sp/transaction_history",
+          "method": "GET",
+          "summary": "Get Strategy Provider Transaction History",
+          "description": "GET /v1/public/strategy_vault/sp/transaction_history\n\nView Strategy Provider Transaction History",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "type",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "`deposit` / `withdrawal` / return all if empty",
+              "example": null
+            },
+            {
+              "name": "chain_id",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "return all if empty",
+              "example": null
+            },
+            {
+              "name": "source",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "`wallet` / `broker_id` / return all if empty",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 20\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"created_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"period_number\": {\n                    \"type\": \"number\"\n                  },\n                  \"type\": {\n                    \"type\": \"string\"\n                  },\n                  \"source\": {\n                    \"type\": \"string\"\n                  },\n                  \"status\": {\n                    \"type\": \"string\"\n                  },\n                  \"est_assign_period_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"unlock_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"est_claim_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"chain_id\": {\n                    \"type\": \"string\"\n                  },\n                  \"txn_hash\": {\n                    \"type\": \"string\"\n                  },\n                  \"txn_hash_claim\": {\n                    \"type\": \"string\"\n                  },\n                  \"shares_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"amount_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"transaction_nonce\": {\n                    \"type\": \"string\",\n                    \"description\": \"will return string value if the source != wallet; will return null if source == wallet\"\n                  }\n                },\n                \"example\": [\n                  {\n                    \"created_time\": 1734652800000,\n                    \"period_number\": 4,\n                    \"type\": \"withdrawal\",\n                    \"source\": \"wallet\",\n                    \"status\": \"claimable\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x4dbc4b0cc722d2f401e9a32fe5be7a52c6834785e2084ac78447e94735b8274d\",\n                    \"txn_hash_claim\": null,\n                    \"shares_change\": 60,\n                    \"amount_change\": 88.009,\n                    \"transaction_nonce\": null\n                  },\n                  {\n                    \"created_time\": 1734566400000,\n                    \"period_number\": 2,\n                    \"type\": \"withdrawal\",\n                    \"source\": \"wallet\",\n                    \"status\": \"claimed\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x14a8248f38c2530011ba4c826eb1f1db8dad05025be24461bb42f1bc540ac42e\",\n                    \"txn_hash_claim\": \"0x25b973f86b370e9f1f4b5244242ab8ade3bdbfc1068b74a9b17a2c345a64080f\",\n                    \"shares_change\": 400,\n                    \"amount_change\": 572.001,\n                    \"transaction_nonce\": null\n                  },\n                  {\n                    \"created_time\": 1734480000000,\n                    \"period_number\": 1,\n                    \"type\": \"deposit\",\n                    \"source\": \"WOOFi Pro\",\n                    \"status\": \"available\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x14a8248f38c2530011ba4c826eb1f1db8dad05025be24461bb42f1bc540ac42e\",\n                    \"txn_hash_claim\": null,\n                    \"shares_change\": 465.83,\n                    \"amount_change\": 2800.004,\n                    \"transaction_nonce\": null\n                  }\n                ]\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/sp/transaction_history';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/sp/claim_info",
+          "method": "GET",
+          "summary": "Get Strategy Provider Claimable Amount",
+          "description": "GET /v1/public/strategy_vault/sp/claim_info",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "chain_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"claimable_amount\": {\n              \"type\": \"number\",\n              \"example\": 10087.26\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/sp/claim_info';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/sp/fees_history",
+          "method": "GET",
+          "summary": "Get Strategy Provider Fee History",
+          "description": "GET /v1/public/strategy_vault/sp/fees_history",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"meta\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"total\": {\n              \"type\": \"number\",\n              \"example\": 3\n            },\n            \"records_per_page\": {\n              \"type\": \"number\",\n              \"example\": 20\n            },\n            \"current_page\": {\n              \"type\": \"number\",\n              \"description\": \"start from 1\",\n              \"example\": 1\n            }\n          }\n        },\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"created_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"period_number\": {\n                    \"type\": \"number\"\n                  },\n                  \"type\": {\n                    \"type\": \"string\"\n                  },\n                  \"shares_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"amount_change\": {\n                    \"type\": \"number\"\n                  }\n                }\n              }\n            }\n          },\n          \"example\": [\n            {\n              \"created_time\": 1734652800000,\n              \"period_number\": 2,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 1.24,\n              \"amount_change\": 1.24\n            },\n            {\n              \"created_time\": 1734566400000,\n              \"period_number\": 1,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 0\n            },\n            {\n              \"created_time\": 1734480000000,\n              \"period_number\": 0,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 0\n            }\n          ]\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/sp/fees_history';\nfetch(url).then(res => res.json()).then(console.log);"
+        }
+      ]
+    },
+    {
+      "name": "Fund Management",
+      "description": "Fund-level information including period history and pending transactions.",
+      "endpoints": [
+        {
+          "path": "/v1/public/strategy_vault/fund/info",
+          "method": "GET",
+          "summary": "Get Strategy Fund Details",
+          "description": "GET /v1/public/strategy_vault/fund/info\n\nView Strategy Fund Info",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"fund_nav\": {\n              \"type\": \"number\",\n              \"example\": 123456789\n            },\n            \"fund_lifetime_net_pnl\": {\n              \"type\": \"number\",\n              \"example\": 123456\n            },\n            \"fund_total_strategy_shares\": {\n              \"type\": \"number\",\n              \"example\": 123456789\n            },\n            \"est_strategy_share_price\": {\n              \"type\": \"number\",\n              \"example\": 1.5\n            },\n            \"broker_id\": {\n              \"type\": \"string\",\n              \"example\": \"orderly\"\n            },\n            \"current_period_number\": {\n              \"type\": \"number\",\n              \"example\": 4\n            },\n            \"period_start_time\": {\n              \"type\": \"number\",\n              \"example\": 1738454400000\n            },\n            \"period_end_time\": {\n              \"type\": \"number\",\n              \"example\": 1738540800000\n            },\n            \"period_duration\": {\n              \"type\": \"number\",\n              \"example\": 60\n            },\n            \"performance_fee_rate\": {\n              \"type\": \"number\",\n              \"example\": 0\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/fund/info';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/fund/period_info",
+          "method": "GET",
+          "summary": "Get Period History and Fund Period Instructions",
+          "description": "GET /v1/public/strategy_vault/fund/period_info",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "period_number",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 2\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"period_number\": {\n                    \"type\": \"number\",\n                    \"example\": 2\n                  },\n                  \"start_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1738454400000\n                  },\n                  \"end_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1738540800000\n                  },\n                  \"total_deposit_amount\": {\n                    \"type\": \"number\",\n                    \"example\": 30000\n                  },\n                  \"total_withdrawal_amount\": {\n                    \"type\": \"number\",\n                    \"example\": null\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/fund/period_info';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/fund/pending_transactions",
+          "method": "GET",
+          "summary": "Get Preview Users Pending Requests",
+          "description": "GET /v1/public/strategy_vault/fund/pending_transactions",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"est_fund_allocation_pct\": {\n              \"type\": \"number\",\n              \"example\": 1\n            },\n            \"total_pending_deposit_amount\": {\n              \"type\": \"number\",\n              \"example\": 50000\n            },\n            \"lp_pending_deposit_amount\": {\n              \"type\": \"number\",\n              \"example\": 40000\n            },\n            \"sp_pending_deposit_amount\": {\n              \"type\": \"number\",\n              \"example\": 10000\n            },\n            \"fund_pending_deposit_amount\": {\n              \"type\": \"number\",\n              \"example\": 50000\n            },\n            \"fund_pending_withdrawal_amount\": {\n              \"type\": \"number\",\n              \"example\": 2350\n            },\n            \"total_pending_withdrawal_main_share\": {\n              \"type\": \"number\",\n              \"example\": 4000\n            },\n            \"est_main_share_price\": {\n              \"type\": \"number\",\n              \"example\": 0.5\n            },\n            \"total_pending_withdrawal_strategy_share\": {\n              \"type\": \"number\",\n              \"example\": 500\n            },\n            \"est_strategy_share_price\": {\n              \"type\": \"number\",\n              \"example\": 0.7\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/fund/pending_transactions';\nfetch(url).then(res => res.json()).then(console.log);"
+        }
+      ]
+    },
+    {
+      "name": "Liquidity Provider",
+      "description": "Liquidity provider information, performance, fees, and claim status.",
+      "endpoints": [
+        {
+          "path": "/v1/public/strategy_vault/lp/info",
+          "method": "GET",
+          "summary": "Get Liquidity Provider Info",
+          "description": "GET /v1/public/strategy_vault/lp/info",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "return all if empty",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"vault_id\": {\n                    \"type\": \"string\",\n                    \"example\": \"\"\n                  },\n                  \"lp_nav\": {\n                    \"type\": \"number\",\n                    \"example\": 56789\n                  },\n                  \"lp_tvl\": {\n                    \"type\": \"number\",\n                    \"example\": 63701.21\n                  },\n                  \"total_main_shares\": {\n                    \"type\": \"number\",\n                    \"example\": 12700\n                  },\n                  \"available_main_shares\": {\n                    \"type\": \"number\",\n                    \"example\": 12458.05\n                  },\n                  \"potential_pnl\": {\n                    \"type\": \"number\",\n                    \"example\": 2567.73\n                  },\n                  \"total_performance_fees\": {\n                    \"type\": \"number\",\n                    \"example\": 1.24\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/info';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/lp/fees_history",
+          "method": "GET",
+          "summary": "Get Liquidity Provider Fee History",
+          "description": "GET /v1/public/strategy_vault/lp/fees_history",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            },
+            {
+              "name": "start_t",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "start time range that wish to query",
+              "example": null
+            },
+            {
+              "name": "end_t",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "end time range that wish to query",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"meta\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"total\": {\n              \"type\": \"number\",\n              \"example\": 3\n            },\n            \"records_per_page\": {\n              \"type\": \"number\",\n              \"example\": 20\n            },\n            \"current_page\": {\n              \"type\": \"number\",\n              \"description\": \"start from 1\",\n              \"example\": 1\n            }\n          }\n        },\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"created_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"period_number\": {\n                    \"type\": \"number\"\n                  },\n                  \"type\": {\n                    \"type\": \"string\"\n                  },\n                  \"shares_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"amount_change\": {\n                    \"type\": \"number\"\n                  }\n                }\n              }\n            }\n          },\n          \"example\": [\n            {\n              \"created_time\": 1734652800000,\n              \"period_number\": 2,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 1.24\n            },\n            {\n              \"created_time\": 1734566400000,\n              \"period_number\": 1,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 0\n            },\n            {\n              \"created_time\": 1734480000000,\n              \"period_number\": 0,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 0\n            }\n          ]\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/fees_history';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/lp/performance",
+          "method": "GET",
+          "summary": "Get Liquidity Provider Performance",
+          "description": "GET /v1/public/strategy_vault/lp/performance\n\nLiquidity Provider’s performance in a vault",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"time_range\": {\n                    \"type\": \"string\"\n                  },\n                  \"incremental_net_pnl\": {\n                    \"type\": \"number\"\n                  },\n                  \"max_drawdown\": {\n                    \"type\": \"number\"\n                  },\n                  \"pnl_max_drawdown\": {\n                    \"type\": \"number\"\n                  }\n                }\n              }\n            }\n          },\n          \"example\": [\n            {\n              \"time_range\": \"24h\",\n              \"incremental_net_pnl\": 123,\n              \"max_drawdown\": 0.015,\n              \"pnl_max_drawdown\": 0.012\n            },\n            {\n              \"time_range\": \"7d\",\n              \"incremental_net_pnl\": -2559,\n              \"max_drawdown\": 0.02,\n              \"pnl_max_drawdown\": 0.04\n            },\n            {\n              \"time_range\": \"30d\",\n              \"incremental_net_pnl\": 8888.021,\n              \"max_drawdown\": 0.0253,\n              \"pnl_max_drawdown\": 0.0051\n            },\n            {\n              \"time_range\": \"all_time\",\n              \"incremental_net_pnl\": 99888.0702,\n              \"max_drawdown\": 0.03,\n              \"pnl_max_drawdown\": 0.08\n            }\n          ]\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/performance';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/lp/performance_chart",
+          "method": "GET",
+          "summary": "Get Liquidity Provider TVL/PnL History",
+          "description": "GET /v1/public/strategy_vault/lp/performance_chart\n\nLiquidity Provider’s TVL/PnL history in a vault",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "type",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "`PNL` / `TVL`",
+              "example": null
+            },
+            {
+              "name": "time_range",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "`24h` / `7d` / `30d` / `all_time`",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"timestamp\": {\n                    \"type\": \"number\",\n                    \"example\": 1734307200000\n                  },\n                  \"value\": {\n                    \"type\": \"number\",\n                    \"example\": 1400000\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/performance_chart';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/lp/transaction_history",
+          "method": "GET",
+          "summary": "Get Liquidity Provider Transaction History",
+          "description": "GET /v1/public/strategy_vault/lp/transaction_history",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "type",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "`deposit` / `withdrawal` / return all if empty",
+              "example": null
+            },
+            {
+              "name": "chain_id",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "return all if empty",
+              "example": null
+            },
+            {
+              "name": "source",
+              "in": "query",
+              "type": "string",
+              "required": false,
+              "description": "`wallet` / `broker_id` / return all if empty",
+              "example": null
+            },
+            {
+              "name": "page",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page you wish to query start from 1",
+              "example": null
+            },
+            {
+              "name": "size",
+              "in": "query",
+              "type": "number",
+              "required": false,
+              "description": "the page size you wish to query (max: 500)",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"created_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"period_number\": {\n                    \"type\": \"number\"\n                  },\n                  \"type\": {\n                    \"type\": \"string\"\n                  },\n                  \"source\": {\n                    \"type\": \"string\"\n                  },\n                  \"status\": {\n                    \"type\": \"string\"\n                  },\n                  \"est_assign_period_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"unlock_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"est_claim_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"chain_id\": {\n                    \"type\": \"string\"\n                  },\n                  \"txn_hash\": {\n                    \"type\": \"string\"\n                  },\n                  \"txn_hash_claim\": {\n                    \"type\": \"string\"\n                  },\n                  \"shares_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"amount_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"transaction_nonce\": {\n                    \"type\": \"string\",\n                    \"description\": \"will return string value if the source != wallet; will return null if source == wallet\"\n                  }\n                },\n                \"example\": [\n                  {\n                    \"created_time\": 1734652800000,\n                    \"period_number\": 4,\n                    \"type\": \"withdrawal\",\n                    \"source\": \"wallet\",\n                    \"status\": \"claimable\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x4dbc4b0cc722d2f401e9a32fe5be7a52c6834785e2084ac78447e94735b8274d\",\n                    \"txn_hash_claim\": null,\n                    \"shares_change\": 60,\n                    \"amount_change\": 88.009,\n                    \"transaction_nonce\": null\n                  },\n                  {\n                    \"created_time\": 1734566400000,\n                    \"period_number\": 2,\n                    \"type\": \"withdrawal\",\n                    \"source\": \"wallet\",\n                    \"status\": \"claimable\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x14a8248f38c2530011ba4c826eb1f1db8dad05025be24461bb42f1bc540ac42e\",\n                    \"txn_hash_claim\": \"0x14a8248f38c2530011ba4c826eb1f1db8dad05025be24461bb42f1bc540ac42e\",\n                    \"shares_change\": 400,\n                    \"amount_change\": 572.001,\n                    \"transaction_nonce\": null\n                  },\n                  {\n                    \"created_time\": 1734480000000,\n                    \"period_number\": 1,\n                    \"type\": \"deposit\",\n                    \"source\": \"WOOFi Pro\",\n                    \"status\": \"available\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": null,\n                    \"txn_hash_claim\": null,\n                    \"shares_change\": 465.83,\n                    \"amount_change\": 2800.004,\n                    \"transaction_nonce\": null\n                  }\n                ]\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/transaction_history';\nfetch(url).then(res => res.json()).then(console.log);"
+        },
+        {
+          "path": "/v1/public/strategy_vault/lp/claim_info",
+          "method": "GET",
+          "summary": "Get Liquidity Provider Claim Info",
+          "description": "GET /v1/public/strategy_vault/lp/claim_info\n\nThe claimable asset amount on a chain from the processed withdrawal request(s) of a vault",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "vault_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            },
+            {
+              "name": "chain_id",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"claimable_amount\": {\n              \"type\": \"number\",\n              \"example\": 10087.26\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/claim_info';\nfetch(url).then(res => res.json()).then(console.log);"
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "description": "User-level overview statistics across all strategy vaults.",
+      "endpoints": [
+        {
+          "path": "/v1/public/strategy_vault/user/overall_info",
+          "method": "GET",
+          "summary": "Get User Overall Statistics across Strategy Vaults",
+          "description": "GET /v1/public/strategy_vault/user/overall_info",
+          "tags": [
+            "public"
+          ],
+          "parameters": [
+            {
+              "name": "wallet_address",
+              "in": "query",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "example": null
+            }
+          ],
+          "responses": [
+            {
+              "code": 200,
+              "description": "Success",
+              "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"total_vaults_tvl\": {\n                    \"type\": \"number\",\n                    \"description\": \"strategy_vaults_lp_tvl + strategy_vaults_sp_tvl\",\n                    \"example\": 10000\n                  },\n                  \"vaults_lp_tvl\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum lp_tvl of all vaults of this address\",\n                    \"example\": 7000\n                  },\n                  \"vaults_sp_tvl\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum sp_tvl of all vaults of this address\",\n                    \"example\": 3000\n                  },\n                  \"total_vaults_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"description\": \"strategy_vaults_lp_lifetime_net_pnl + strategy_vaults_sp_lifetime_net_pnl\",\n                    \"example\": 500\n                  },\n                  \"vaults_lp_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"description\": \"sum of all vaults of this address lp_lifetime_net_pnl. lp_lifetime_net_pnl = LP unrealised PnL + LP realised PnL\",\n                    \"example\": 400\n                  },\n                  \"vaults_sp_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"description\": \"sum of all vaults of this address sp_lifetime_net_pnl\",\n                    \"example\": 100\n                  },\n                  \"total_involved_vaults_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"involved_lp_strategy_vaults_count + involved_sp_strategy_vaults_count\",\n                    \"example\": 5\n                  },\n                  \"involved_lp_vaults_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"count of vaults that this address has lp_tvl > 0\",\n                    \"example\": 4\n                  },\n                  \"involved_sp_vaults_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"count of vaults that this address has\",\n                    \"example\": 1\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          ],
+          "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/user/overall_info';\nfetch(url).then(res => res.json()).then(console.log);"
+        }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "path": "/v1/public/strategy_vault/sp/info",
+      "method": "GET",
+      "summary": "Get Strategy Provider’s Info",
+      "description": "GET /v1/public/strategy_vault/sp/info",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"sp_nav\": {\n              \"type\": \"number\",\n              \"example\": 56789\n            },\n            \"sp_tvl\": {\n              \"type\": \"number\",\n              \"example\": 56789\n            },\n            \"sp_total_strategy_shares\": {\n              \"type\": \"number\",\n              \"example\": 12700\n            },\n            \"sp_strategy_shares_pct\": {\n              \"type\": \"number\",\n              \"example\": 0.12\n            },\n            \"available_strategy_shares\": {\n              \"type\": \"number\",\n              \"example\": 12458.05\n            },\n            \"sp_lifetime_net_pnl\": {\n              \"type\": \"number\",\n              \"example\": 8888\n            },\n            \"potential_pnl\": {\n              \"type\": \"number\",\n              \"example\": 2567.73\n            },\n            \"sp_reserved_collateral\": {\n              \"type\": \"number\",\n              \"example\": 50000\n            },\n            \"sp_min_shares_pct\": {\n              \"type\": \"number\",\n              \"example\": 0.01\n            },\n            \"total_performance_fees\": {\n              \"type\": \"number\",\n              \"example\": 1.24\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/sp/info';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/sp/transaction_history",
+      "method": "GET",
+      "summary": "Get Strategy Provider Transaction History",
+      "description": "GET /v1/public/strategy_vault/sp/transaction_history\n\nView Strategy Provider Transaction History",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "type",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "`deposit` / `withdrawal` / return all if empty",
+          "example": null
+        },
+        {
+          "name": "chain_id",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "return all if empty",
+          "example": null
+        },
+        {
+          "name": "source",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "`wallet` / `broker_id` / return all if empty",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 20\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"created_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"period_number\": {\n                    \"type\": \"number\"\n                  },\n                  \"type\": {\n                    \"type\": \"string\"\n                  },\n                  \"source\": {\n                    \"type\": \"string\"\n                  },\n                  \"status\": {\n                    \"type\": \"string\"\n                  },\n                  \"est_assign_period_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"unlock_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"est_claim_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"chain_id\": {\n                    \"type\": \"string\"\n                  },\n                  \"txn_hash\": {\n                    \"type\": \"string\"\n                  },\n                  \"txn_hash_claim\": {\n                    \"type\": \"string\"\n                  },\n                  \"shares_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"amount_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"transaction_nonce\": {\n                    \"type\": \"string\",\n                    \"description\": \"will return string value if the source != wallet; will return null if source == wallet\"\n                  }\n                },\n                \"example\": [\n                  {\n                    \"created_time\": 1734652800000,\n                    \"period_number\": 4,\n                    \"type\": \"withdrawal\",\n                    \"source\": \"wallet\",\n                    \"status\": \"claimable\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x4dbc4b0cc722d2f401e9a32fe5be7a52c6834785e2084ac78447e94735b8274d\",\n                    \"txn_hash_claim\": null,\n                    \"shares_change\": 60,\n                    \"amount_change\": 88.009,\n                    \"transaction_nonce\": null\n                  },\n                  {\n                    \"created_time\": 1734566400000,\n                    \"period_number\": 2,\n                    \"type\": \"withdrawal\",\n                    \"source\": \"wallet\",\n                    \"status\": \"claimed\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x14a8248f38c2530011ba4c826eb1f1db8dad05025be24461bb42f1bc540ac42e\",\n                    \"txn_hash_claim\": \"0x25b973f86b370e9f1f4b5244242ab8ade3bdbfc1068b74a9b17a2c345a64080f\",\n                    \"shares_change\": 400,\n                    \"amount_change\": 572.001,\n                    \"transaction_nonce\": null\n                  },\n                  {\n                    \"created_time\": 1734480000000,\n                    \"period_number\": 1,\n                    \"type\": \"deposit\",\n                    \"source\": \"WOOFi Pro\",\n                    \"status\": \"available\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x14a8248f38c2530011ba4c826eb1f1db8dad05025be24461bb42f1bc540ac42e\",\n                    \"txn_hash_claim\": null,\n                    \"shares_change\": 465.83,\n                    \"amount_change\": 2800.004,\n                    \"transaction_nonce\": null\n                  }\n                ]\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/sp/transaction_history';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/sp/claim_info",
+      "method": "GET",
+      "summary": "Get Strategy Provider Claimable Amount",
+      "description": "GET /v1/public/strategy_vault/sp/claim_info",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "chain_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"claimable_amount\": {\n              \"type\": \"number\",\n              \"example\": 10087.26\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/sp/claim_info';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/sp/fees_history",
+      "method": "GET",
+      "summary": "Get Strategy Provider Fee History",
+      "description": "GET /v1/public/strategy_vault/sp/fees_history",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"meta\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"total\": {\n              \"type\": \"number\",\n              \"example\": 3\n            },\n            \"records_per_page\": {\n              \"type\": \"number\",\n              \"example\": 20\n            },\n            \"current_page\": {\n              \"type\": \"number\",\n              \"description\": \"start from 1\",\n              \"example\": 1\n            }\n          }\n        },\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"created_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"period_number\": {\n                    \"type\": \"number\"\n                  },\n                  \"type\": {\n                    \"type\": \"string\"\n                  },\n                  \"shares_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"amount_change\": {\n                    \"type\": \"number\"\n                  }\n                }\n              }\n            }\n          },\n          \"example\": [\n            {\n              \"created_time\": 1734652800000,\n              \"period_number\": 2,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 1.24,\n              \"amount_change\": 1.24\n            },\n            {\n              \"created_time\": 1734566400000,\n              \"period_number\": 1,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 0\n            },\n            {\n              \"created_time\": 1734480000000,\n              \"period_number\": 0,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 0\n            }\n          ]\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/sp/fees_history';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/fund/info",
+      "method": "GET",
+      "summary": "Get Strategy Fund Details",
+      "description": "GET /v1/public/strategy_vault/fund/info\n\nView Strategy Fund Info",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"fund_nav\": {\n              \"type\": \"number\",\n              \"example\": 123456789\n            },\n            \"fund_lifetime_net_pnl\": {\n              \"type\": \"number\",\n              \"example\": 123456\n            },\n            \"fund_total_strategy_shares\": {\n              \"type\": \"number\",\n              \"example\": 123456789\n            },\n            \"est_strategy_share_price\": {\n              \"type\": \"number\",\n              \"example\": 1.5\n            },\n            \"broker_id\": {\n              \"type\": \"string\",\n              \"example\": \"orderly\"\n            },\n            \"current_period_number\": {\n              \"type\": \"number\",\n              \"example\": 4\n            },\n            \"period_start_time\": {\n              \"type\": \"number\",\n              \"example\": 1738454400000\n            },\n            \"period_end_time\": {\n              \"type\": \"number\",\n              \"example\": 1738540800000\n            },\n            \"period_duration\": {\n              \"type\": \"number\",\n              \"example\": 60\n            },\n            \"performance_fee_rate\": {\n              \"type\": \"number\",\n              \"example\": 0\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/fund/info';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/fund/period_info",
+      "method": "GET",
+      "summary": "Get Period History and Fund Period Instructions",
+      "description": "GET /v1/public/strategy_vault/fund/period_info",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "period_number",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 2\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"period_number\": {\n                    \"type\": \"number\",\n                    \"example\": 2\n                  },\n                  \"start_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1738454400000\n                  },\n                  \"end_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1738540800000\n                  },\n                  \"total_deposit_amount\": {\n                    \"type\": \"number\",\n                    \"example\": 30000\n                  },\n                  \"total_withdrawal_amount\": {\n                    \"type\": \"number\",\n                    \"example\": null\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/fund/period_info';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/fund/pending_transactions",
+      "method": "GET",
+      "summary": "Get Preview Users Pending Requests",
+      "description": "GET /v1/public/strategy_vault/fund/pending_transactions",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"est_fund_allocation_pct\": {\n              \"type\": \"number\",\n              \"example\": 1\n            },\n            \"total_pending_deposit_amount\": {\n              \"type\": \"number\",\n              \"example\": 50000\n            },\n            \"lp_pending_deposit_amount\": {\n              \"type\": \"number\",\n              \"example\": 40000\n            },\n            \"sp_pending_deposit_amount\": {\n              \"type\": \"number\",\n              \"example\": 10000\n            },\n            \"fund_pending_deposit_amount\": {\n              \"type\": \"number\",\n              \"example\": 50000\n            },\n            \"fund_pending_withdrawal_amount\": {\n              \"type\": \"number\",\n              \"example\": 2350\n            },\n            \"total_pending_withdrawal_main_share\": {\n              \"type\": \"number\",\n              \"example\": 4000\n            },\n            \"est_main_share_price\": {\n              \"type\": \"number\",\n              \"example\": 0.5\n            },\n            \"total_pending_withdrawal_strategy_share\": {\n              \"type\": \"number\",\n              \"example\": 500\n            },\n            \"est_strategy_share_price\": {\n              \"type\": \"number\",\n              \"example\": 0.7\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/fund/pending_transactions';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/info",
+      "method": "GET",
+      "summary": "Get Strategy Vault Info",
+      "description": "GET /v1/public/strategy_vault/vault/info",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "return all if empty",
+          "example": null
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "return all if no filter",
+          "example": null
+        },
+        {
+          "name": "broker_ids",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "can filter multiple broker_id per query.",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"vault_id\": {\n                    \"type\": \"string\",\n                    \"example\": \"\"\n                  },\n                  \"vault_address\": {\n                    \"type\": \"string\",\n                    \"example\": \"\"\n                  },\n                  \"vault_type\": {\n                    \"type\": \"string\",\n                    \"example\": \"protocol\"\n                  },\n                  \"vault_name\": {\n                    \"type\": \"string\",\n                    \"example\": \"Orderly OmniVault\"\n                  },\n                  \"description\": {\n                    \"type\": \"string\",\n                    \"example\": \"Earn passive yields effortlessly, no trading expertise required. Deposit...\"\n                  },\n                  \"sp_address\": {\n                    \"type\": \"string\",\n                    \"example\": \"xxxxxxx\"\n                  },\n                  \"sp_name\": {\n                    \"type\": \"string\",\n                    \"description\": \"return null if not set\",\n                    \"example\": \"yyyy\"\n                  },\n                  \"asset\": {\n                    \"type\": \"string\",\n                    \"example\": \"USDC\"\n                  },\n                  \"vault_age\": {\n                    \"type\": \"number\",\n                    \"description\": \"From period 0 start time to current time; in terms of day.\",\n                    \"example\": 180\n                  },\n                  \"status\": {\n                    \"type\": \"string\",\n                    \"description\": \"`live` / `pre_launch` / `closing` / `closed`\",\n                    \"example\": \"live\"\n                  },\n                  \"vault_start_time\": {\n                    \"type\": \"number\",\n                    \"description\": \"First period start time\",\n                    \"example\": 1702989203989\n                  },\n                  \"performance_fee_rate\": {\n                    \"type\": \"number\",\n                    \"example\": 0.3\n                  },\n                  \"supported_chains\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\",\n                      \"properties\": {\n                        \"chain_id\": {\n                          \"type\": \"string\",\n                          \"example\": \"1\"\n                        },\n                        \"chain_name\": {\n                          \"type\": \"string\",\n                          \"example\": \"Ethereum\"\n                        }\n                      }\n                    },\n                    \"example\": [\n                      {\n                        \"chain_id\": \"1\",\n                        \"chain_name\": \"Ethereum\"\n                      },\n                      {\n                        \"chain_id\": \"42161\",\n                        \"chain_name\": \"Arbitrum\"\n                      },\n                      {\n                        \"chain_id\": \"8453\",\n                        \"chain_name\": \"Base\"\n                      },\n                      {\n                        \"chain_id\": \"10\",\n                        \"chain_name\": \"Optimism\"\n                      },\n                      {\n                        \"chain_id\": \"137\",\n                        \"chain_name\": \"Polygon\"\n                      }\n                    ]\n                  },\n                  \"tvl\": {\n                    \"type\": \"number\",\n                    \"example\": 123456789\n                  },\n                  \"valid_hpr\": {\n                    \"type\": \"number\",\n                    \"example\": 30\n                  },\n                  \"30d_apy\": {\n                    \"type\": \"number\",\n                    \"example\": 0.24\n                  },\n                  \"recovery_30d_apy\": {\n                    \"type\": \"number\",\n                    \"example\": 0\n                  },\n                  \"vault_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"example\": 123456\n                  },\n                  \"lp_counts\": {\n                    \"type\": \"number\",\n                    \"example\": 1204\n                  },\n                  \"total_main_shares\": {\n                    \"type\": \"number\",\n                    \"example\": 123456789\n                  },\n                  \"lifetime_apy\": {\n                    \"type\": \"number\",\n                    \"example\": 0.21\n                  },\n                  \"lock_duration\": {\n                    \"type\": \"number\",\n                    \"example\": 48\n                  },\n                  \"min_deposit_amount\": {\n                    \"type\": \"number\",\n                    \"example\": 10\n                  },\n                  \"min_withdrawal_amount\": {\n                    \"type\": \"number\",\n                    \"example\": 10\n                  },\n                  \"gate_threshold_pct\": {\n                    \"type\": \"number\",\n                    \"example\": 0.1\n                  },\n                  \"gate_triggered\": {\n                    \"type\": \"boolean\",\n                    \"example\": false\n                  },\n                  \"broker_id\": {\n                    \"type\": \"string\",\n                    \"example\": \"orderly\"\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/info';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/performance",
+      "method": "GET",
+      "summary": "Get Strategy Vault Performance",
+      "description": "GET /v1/public/strategy_vault/vault/performance",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"time_range\": {\n                    \"type\": \"string\"\n                  },\n                  \"incremental_net_pnl\": {\n                    \"type\": \"number\"\n                  },\n                  \"max_drawdown\": {\n                    \"type\": \"number\"\n                  },\n                  \"pnl_max_drawdown\": {\n                    \"type\": \"number\"\n                  },\n                  \"fees\": {\n                    \"type\": \"number\"\n                  },\n                  \"volume\": {\n                    \"type\": \"number\"\n                  }\n                },\n                \"example\": [\n                  {\n                    \"time_range\": \"24h\",\n                    \"incremental_net_pnl\": 5678.9,\n                    \"max_drawdown\": 0.015,\n                    \"pnl_max_drawdown\": 0.012,\n                    \"fees\": 1234.5,\n                    \"volume\": 456789\n                  },\n                  {\n                    \"time_range\": \"7d\",\n                    \"incremental_net_pnl\": -45678.9,\n                    \"max_drawdown\": 0.02,\n                    \"pnl_max_drawdown\": 0.04,\n                    \"fees\": 7890.5,\n                    \"volume\": 1234567\n                  },\n                  {\n                    \"time_range\": \"30d\",\n                    \"incremental_net_pnl\": 172567.73,\n                    \"max_drawdown\": 0.0253,\n                    \"pnl_max_drawdown\": 0.0051,\n                    \"fees\": 56789,\n                    \"volume\": 3456789\n                  },\n                  {\n                    \"time_range\": \"all_time\",\n                    \"incremental_net_pnl\": 1234567.89,\n                    \"max_drawdown\": 0.03,\n                    \"pnl_max_drawdown\": 0.08,\n                    \"fees\": 98765,\n                    \"volume\": 9876543\n                  }\n                ]\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/performance';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/performance_chart",
+      "method": "GET",
+      "summary": "Get Strategy Vault TVL/PnL History",
+      "description": "GET /v1/public/strategy_vault/vault/performance_chart",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "type",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "`PNL` / `TVL`",
+          "example": null
+        },
+        {
+          "name": "time_range",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "`24h` / `7d` / `30d` / `all_time`",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"timestamp\": {\n                    \"type\": \"number\",\n                    \"example\": 1734307200000\n                  },\n                  \"value\": {\n                    \"type\": \"number\",\n                    \"example\": 1400000\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/performance_chart';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/overall_info",
+      "method": "GET",
+      "summary": "Get Overall Statistics of all Strategy Vaults",
+      "description": "GET /v1/public/strategy_vault/vault/overall_info",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "broker_ids",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "return all if no filter. can filter multiple broker_id per query",
+          "example": "orderly,woofi_pro,aden"
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"strategy_vaults_tvl\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum tvl of all vaults\",\n                    \"example\": 1234567.89\n                  },\n                  \"strategy_vaults_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum lifetime net pnl of all vaults\",\n                    \"example\": 350000.21\n                  },\n                  \"strategy_vaults_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"With status == live & closing. status == closed will not be included in this count.\",\n                    \"example\": 8\n                  },\n                  \"strategy_vaults_lp_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum of LP count of all SV. e.g. address 0x…123 deposited in vault A & vault B will be counted as 2\",\n                    \"example\": 1234\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/overall_info';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/user/overall_info",
+      "method": "GET",
+      "summary": "Get User Overall Statistics across Strategy Vaults",
+      "description": "GET /v1/public/strategy_vault/user/overall_info",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"total_vaults_tvl\": {\n                    \"type\": \"number\",\n                    \"description\": \"strategy_vaults_lp_tvl + strategy_vaults_sp_tvl\",\n                    \"example\": 10000\n                  },\n                  \"vaults_lp_tvl\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum lp_tvl of all vaults of this address\",\n                    \"example\": 7000\n                  },\n                  \"vaults_sp_tvl\": {\n                    \"type\": \"number\",\n                    \"description\": \"Sum sp_tvl of all vaults of this address\",\n                    \"example\": 3000\n                  },\n                  \"total_vaults_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"description\": \"strategy_vaults_lp_lifetime_net_pnl + strategy_vaults_sp_lifetime_net_pnl\",\n                    \"example\": 500\n                  },\n                  \"vaults_lp_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"description\": \"sum of all vaults of this address lp_lifetime_net_pnl. lp_lifetime_net_pnl = LP unrealised PnL + LP realised PnL\",\n                    \"example\": 400\n                  },\n                  \"vaults_sp_lifetime_net_pnl\": {\n                    \"type\": \"number\",\n                    \"description\": \"sum of all vaults of this address sp_lifetime_net_pnl\",\n                    \"example\": 100\n                  },\n                  \"total_involved_vaults_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"involved_lp_strategy_vaults_count + involved_sp_strategy_vaults_count\",\n                    \"example\": 5\n                  },\n                  \"involved_lp_vaults_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"count of vaults that this address has lp_tvl > 0\",\n                    \"example\": 4\n                  },\n                  \"involved_sp_vaults_count\": {\n                    \"type\": \"number\",\n                    \"description\": \"count of vaults that this address has\",\n                    \"example\": 1\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/user/overall_info';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/liquidator_history",
+      "method": "GET",
+      "summary": "Get Strategy Vault Liquidator History",
+      "description": "Liquidated positions of liquidator\n\n\n\nGET /v1/public/strategy_vault/vault/liquidator_history",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "symbol",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "only 1 at a time",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"liquidation_id\": {\n                    \"type\": \"number\",\n                    \"example\": 1728\n                  },\n                  \"timestamp\": {\n                    \"type\": \"number\",\n                    \"example\": 1685154032762\n                  },\n                  \"type\": {\n                    \"type\": \"string\",\n                    \"example\": \"liquidated\",\n                    \"description\": \"liquidated: claimed from user liquidated position, claimed: claimed from insuranceFund position\"\n                  },\n                  \"assigned\": {\n                    \"type\": \"number\",\n                    \"example\": 1,\n                    \"description\": \"1: refers to liquidated position assigned to liquidator, 0: refers to liquidated position initiated by liquidator\"\n                  },\n                  \"positions_by_perp\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\",\n                      \"properties\": {\n                        \"abs_liquidator_fee\": {\n                          \"type\": \"number\",\n                          \"example\": 1.152279\n                        },\n                        \"cost_position_transfer\": {\n                          \"type\": \"number\",\n                          \"example\": 65.84448\n                        },\n                        \"liquidator_fee\": {\n                          \"type\": \"number\",\n                          \"example\": 0.0175\n                        },\n                        \"position_qty\": {\n                          \"type\": \"number\",\n                          \"example\": 41.6\n                        },\n                        \"symbol\": {\n                          \"type\": \"string\",\n                          \"example\": \"PERP_NEAR_USDC\"\n                        },\n                        \"transfer_price\": {\n                          \"type\": \"number\",\n                          \"example\": 1.5828\n                        }\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/liquidator_history';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/positions",
+      "method": "GET",
+      "summary": "Get Strategy Vault Positions",
+      "description": "GET /v1/public/strategy_vault/vault/positions",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"exchange\": {\n                    \"type\": \"string\",\n                    \"example\": \"orderly\"\n                  },\n                  \"symbol\": {\n                    \"type\": \"string\",\n                    \"example\": \"PERP_BTC_USDC\"\n                  },\n                  \"position_qty\": {\n                    \"type\": \"number\",\n                    \"example\": -5\n                  },\n                  \"average_open_price\": {\n                    \"type\": \"number\",\n                    \"example\": 27908.14386047\n                  },\n                  \"mark_price\": {\n                    \"type\": \"number\",\n                    \"example\": 27794.9\n                  },\n                  \"est_liq_price\": {\n                    \"type\": \"number\",\n                    \"example\": 117335.92899428\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/positions';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/open_orders",
+      "method": "GET",
+      "summary": "Get Strategy Vault Open Orders",
+      "description": "GET /v1/public/strategy_vault/vault/open_orders\n\nIncludes both normal & algo orders",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "symbol",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "one symbol at a time",
+          "example": null
+        },
+        {
+          "name": "sort_by",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "`ascending` / `descending` (default) on updated_time",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"exchange\": {\n                    \"type\": \"string\",\n                    \"example\": \"orderly\"\n                  },\n                  \"order_id\": {\n                    \"type\": \"number\",\n                    \"example\": 78151\n                  },\n                  \"created_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1653563963000\n                  },\n                  \"updated_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1653564213000\n                  },\n                  \"type\": {\n                    \"type\": \"string\",\n                    \"example\": \"LIMIT\"\n                  },\n                  \"symbol\": {\n                    \"type\": \"string\",\n                    \"example\": \"PERP_WOO_USDC\"\n                  },\n                  \"side\": {\n                    \"type\": \"string\",\n                    \"example\": \"BUY\"\n                  },\n                  \"quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"price\": {\n                    \"type\": \"number\",\n                    \"example\": 0.67772\n                  },\n                  \"amount\": {\n                    \"type\": \"number\",\n                    \"example\": 10\n                  },\n                  \"executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"total_executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"average_executed_price\": {\n                    \"type\": \"number\",\n                    \"example\": 0.67772\n                  },\n                  \"status\": {\n                    \"type\": \"string\",\n                    \"example\": \"NEW\"\n                  },\n                  \"is_triggered\": {\n                    \"type\": \"string\",\n                    \"example\": \"false\"\n                  },\n                  \"child_orders\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\"\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/open_orders';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/trade_history",
+      "method": "GET",
+      "summary": "Get Strategy Vault Trade History",
+      "description": "GET /v1/public/strategy_vault/vault/trade_history",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "symbol",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "one symbol at a time",
+          "example": null
+        },
+        {
+          "name": "sort_by",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "`ascending` / `descending` (default)",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"exchange\": {\n                    \"type\": \"string\",\n                    \"example\": \"orderly\"\n                  },\n                  \"id\": {\n                    \"type\": \"number\",\n                    \"example\": 2\n                  },\n                  \"symbol\": {\n                    \"type\": \"string\",\n                    \"example\": \"PERP_BTC_USDC\"\n                  },\n                  \"fee\": {\n                    \"type\": \"number\",\n                    \"example\": 0.0001\n                  },\n                  \"fee_asset\": {\n                    \"type\": \"string\",\n                    \"example\": \"USDC\"\n                  },\n                  \"side\": {\n                    \"type\": \"string\",\n                    \"example\": \"BUY\"\n                  },\n                  \"order_id\": {\n                    \"type\": \"number\",\n                    \"example\": 1\n                  },\n                  \"executed_price\": {\n                    \"type\": \"number\",\n                    \"example\": 123\n                  },\n                  \"executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 0.05\n                  },\n                  \"executed_timestamp\": {\n                    \"type\": \"number\",\n                    \"example\": 1567382401000\n                  },\n                  \"is_maker\": {\n                    \"type\": \"number\",\n                    \"example\": 1\n                  },\n                  \"realized_pnl\": {\n                    \"type\": \"number\",\n                    \"example\": 0\n                  },\n                  \"match_id\": {\n                    \"type\": \"number\",\n                    \"example\": 7386297591862811000\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/trade_history';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/vault/order_history",
+      "method": "GET",
+      "summary": "Get Strategy Vault Order History",
+      "description": "Include both normal & algo orders\n\n\n\nGET /v1/public/strategy_vault/vault/order_history",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "symbol",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "one symbol at a time",
+          "example": null
+        },
+        {
+          "name": "sort_by",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "`ascending` / `descending` (default) on updated_time",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"order_id\": {\n                    \"type\": \"number\",\n                    \"example\": 78151\n                  },\n                  \"created_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1653563963000\n                  },\n                  \"updated_time\": {\n                    \"type\": \"number\",\n                    \"example\": 1653564213000\n                  },\n                  \"type\": {\n                    \"type\": \"string\",\n                    \"example\": \"LIMIT\"\n                  },\n                  \"symbol\": {\n                    \"type\": \"string\",\n                    \"example\": \"PERP_WOO_USDC\"\n                  },\n                  \"side\": {\n                    \"type\": \"string\",\n                    \"example\": \"BUY\"\n                  },\n                  \"quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"price\": {\n                    \"type\": \"number\",\n                    \"example\": 0.67772\n                  },\n                  \"amount\": {\n                    \"type\": \"number\",\n                    \"example\": 10\n                  },\n                  \"executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"total_executed_quantity\": {\n                    \"type\": \"number\",\n                    \"example\": 20\n                  },\n                  \"average_executed_price\": {\n                    \"type\": \"number\",\n                    \"example\": 0.67772\n                  },\n                  \"status\": {\n                    \"type\": \"string\",\n                    \"example\": \"NEW\"\n                  },\n                  \"is_triggered\": {\n                    \"type\": \"boolean\",\n                    \"example\": false\n                  },\n                  \"child_orders\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"object\"\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/vault/order_history';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/lp/info",
+      "method": "GET",
+      "summary": "Get Liquidity Provider Info",
+      "description": "GET /v1/public/strategy_vault/lp/info",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "return all if empty",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"vault_id\": {\n                    \"type\": \"string\",\n                    \"example\": \"\"\n                  },\n                  \"lp_nav\": {\n                    \"type\": \"number\",\n                    \"example\": 56789\n                  },\n                  \"lp_tvl\": {\n                    \"type\": \"number\",\n                    \"example\": 63701.21\n                  },\n                  \"total_main_shares\": {\n                    \"type\": \"number\",\n                    \"example\": 12700\n                  },\n                  \"available_main_shares\": {\n                    \"type\": \"number\",\n                    \"example\": 12458.05\n                  },\n                  \"potential_pnl\": {\n                    \"type\": \"number\",\n                    \"example\": 2567.73\n                  },\n                  \"total_performance_fees\": {\n                    \"type\": \"number\",\n                    \"example\": 1.24\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/info';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/lp/fees_history",
+      "method": "GET",
+      "summary": "Get Liquidity Provider Fee History",
+      "description": "GET /v1/public/strategy_vault/lp/fees_history",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        },
+        {
+          "name": "start_t",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "start time range that wish to query",
+          "example": null
+        },
+        {
+          "name": "end_t",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "end time range that wish to query",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"meta\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"total\": {\n              \"type\": \"number\",\n              \"example\": 3\n            },\n            \"records_per_page\": {\n              \"type\": \"number\",\n              \"example\": 20\n            },\n            \"current_page\": {\n              \"type\": \"number\",\n              \"description\": \"start from 1\",\n              \"example\": 1\n            }\n          }\n        },\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"created_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"period_number\": {\n                    \"type\": \"number\"\n                  },\n                  \"type\": {\n                    \"type\": \"string\"\n                  },\n                  \"shares_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"amount_change\": {\n                    \"type\": \"number\"\n                  }\n                }\n              }\n            }\n          },\n          \"example\": [\n            {\n              \"created_time\": 1734652800000,\n              \"period_number\": 2,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 1.24\n            },\n            {\n              \"created_time\": 1734566400000,\n              \"period_number\": 1,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 0\n            },\n            {\n              \"created_time\": 1734480000000,\n              \"period_number\": 0,\n              \"type\": \"performance_fee\",\n              \"shares_change\": 0,\n              \"amount_change\": 0\n            }\n          ]\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/fees_history';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/lp/performance",
+      "method": "GET",
+      "summary": "Get Liquidity Provider Performance",
+      "description": "GET /v1/public/strategy_vault/lp/performance\n\nLiquidity Provider’s performance in a vault",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"time_range\": {\n                    \"type\": \"string\"\n                  },\n                  \"incremental_net_pnl\": {\n                    \"type\": \"number\"\n                  },\n                  \"max_drawdown\": {\n                    \"type\": \"number\"\n                  },\n                  \"pnl_max_drawdown\": {\n                    \"type\": \"number\"\n                  }\n                }\n              }\n            }\n          },\n          \"example\": [\n            {\n              \"time_range\": \"24h\",\n              \"incremental_net_pnl\": 123,\n              \"max_drawdown\": 0.015,\n              \"pnl_max_drawdown\": 0.012\n            },\n            {\n              \"time_range\": \"7d\",\n              \"incremental_net_pnl\": -2559,\n              \"max_drawdown\": 0.02,\n              \"pnl_max_drawdown\": 0.04\n            },\n            {\n              \"time_range\": \"30d\",\n              \"incremental_net_pnl\": 8888.021,\n              \"max_drawdown\": 0.0253,\n              \"pnl_max_drawdown\": 0.0051\n            },\n            {\n              \"time_range\": \"all_time\",\n              \"incremental_net_pnl\": 99888.0702,\n              \"max_drawdown\": 0.03,\n              \"pnl_max_drawdown\": 0.08\n            }\n          ]\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/performance';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/lp/performance_chart",
+      "method": "GET",
+      "summary": "Get Liquidity Provider TVL/PnL History",
+      "description": "GET /v1/public/strategy_vault/lp/performance_chart\n\nLiquidity Provider’s TVL/PnL history in a vault",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "type",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "`PNL` / `TVL`",
+          "example": null
+        },
+        {
+          "name": "time_range",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "`24h` / `7d` / `30d` / `all_time`",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"timestamp\": {\n                    \"type\": \"number\",\n                    \"example\": 1734307200000\n                  },\n                  \"value\": {\n                    \"type\": \"number\",\n                    \"example\": 1400000\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/performance_chart';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/lp/transaction_history",
+      "method": "GET",
+      "summary": "Get Liquidity Provider Transaction History",
+      "description": "GET /v1/public/strategy_vault/lp/transaction_history",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "type",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "`deposit` / `withdrawal` / return all if empty",
+          "example": null
+        },
+        {
+          "name": "chain_id",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "return all if empty",
+          "example": null
+        },
+        {
+          "name": "source",
+          "in": "query",
+          "type": "string",
+          "required": false,
+          "description": "`wallet` / `broker_id` / return all if empty",
+          "example": null
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page you wish to query start from 1",
+          "example": null
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "type": "number",
+          "required": false,
+          "description": "the page size you wish to query (max: 500)",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"meta\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"total\": {\n                  \"type\": \"number\",\n                  \"example\": 9\n                },\n                \"records_per_page\": {\n                  \"type\": \"number\",\n                  \"example\": 25\n                },\n                \"current_page\": {\n                  \"type\": \"number\",\n                  \"description\": \"start from 1\",\n                  \"example\": 1\n                }\n              }\n            },\n            \"rows\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"created_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"period_number\": {\n                    \"type\": \"number\"\n                  },\n                  \"type\": {\n                    \"type\": \"string\"\n                  },\n                  \"source\": {\n                    \"type\": \"string\"\n                  },\n                  \"status\": {\n                    \"type\": \"string\"\n                  },\n                  \"est_assign_period_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"unlock_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"est_claim_time\": {\n                    \"type\": \"number\"\n                  },\n                  \"chain_id\": {\n                    \"type\": \"string\"\n                  },\n                  \"txn_hash\": {\n                    \"type\": \"string\"\n                  },\n                  \"txn_hash_claim\": {\n                    \"type\": \"string\"\n                  },\n                  \"shares_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"amount_change\": {\n                    \"type\": \"number\"\n                  },\n                  \"transaction_nonce\": {\n                    \"type\": \"string\",\n                    \"description\": \"will return string value if the source != wallet; will return null if source == wallet\"\n                  }\n                },\n                \"example\": [\n                  {\n                    \"created_time\": 1734652800000,\n                    \"period_number\": 4,\n                    \"type\": \"withdrawal\",\n                    \"source\": \"wallet\",\n                    \"status\": \"claimable\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x4dbc4b0cc722d2f401e9a32fe5be7a52c6834785e2084ac78447e94735b8274d\",\n                    \"txn_hash_claim\": null,\n                    \"shares_change\": 60,\n                    \"amount_change\": 88.009,\n                    \"transaction_nonce\": null\n                  },\n                  {\n                    \"created_time\": 1734566400000,\n                    \"period_number\": 2,\n                    \"type\": \"withdrawal\",\n                    \"source\": \"wallet\",\n                    \"status\": \"claimable\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": \"0x14a8248f38c2530011ba4c826eb1f1db8dad05025be24461bb42f1bc540ac42e\",\n                    \"txn_hash_claim\": \"0x14a8248f38c2530011ba4c826eb1f1db8dad05025be24461bb42f1bc540ac42e\",\n                    \"shares_change\": 400,\n                    \"amount_change\": 572.001,\n                    \"transaction_nonce\": null\n                  },\n                  {\n                    \"created_time\": 1734480000000,\n                    \"period_number\": 1,\n                    \"type\": \"deposit\",\n                    \"source\": \"WOOFi Pro\",\n                    \"status\": \"available\",\n                    \"est_assign_period_time\": null,\n                    \"unlock_time\": null,\n                    \"est_claim_time\": null,\n                    \"chain_id\": \"1\",\n                    \"txn_hash\": null,\n                    \"txn_hash_claim\": null,\n                    \"shares_change\": 465.83,\n                    \"amount_change\": 2800.004,\n                    \"transaction_nonce\": null\n                  }\n                ]\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/transaction_history';\nfetch(url).then(res => res.json()).then(console.log);"
+    },
+    {
+      "path": "/v1/public/strategy_vault/lp/claim_info",
+      "method": "GET",
+      "summary": "Get Liquidity Provider Claim Info",
+      "description": "GET /v1/public/strategy_vault/lp/claim_info\n\nThe claimable asset amount on a chain from the processed withdrawal request(s) of a vault",
+      "tags": [
+        "public"
+      ],
+      "parameters": [
+        {
+          "name": "vault_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "wallet_address",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        },
+        {
+          "name": "chain_id",
+          "in": "query",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": null
+        }
+      ],
+      "responses": [
+        {
+          "code": 200,
+          "description": "Success",
+          "schema": "{\n  \"allOf\": [\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"success\": {\n          \"type\": \"boolean\",\n          \"example\": true\n        },\n        \"timestamp\": {\n          \"type\": \"number\",\n          \"example\": 1702989203989\n        }\n      }\n    },\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"data\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"claimable_amount\": {\n              \"type\": \"number\",\n              \"example\": 10087.26\n            }\n          }\n        }\n      }\n    }\n  ]\n}"
+        }
+      ],
+      "example": "const url = 'https://api.orderly.org/v1/public/strategy_vault/lp/claim_info';\nfetch(url).then(res => res.json()).then(console.log);"
+    }
+  ],
+  "schemas": [
+    {
+      "name": "BasicResponse",
+      "description": "",
+      "type": "object",
+      "properties": [
+        {
+          "name": "success",
+          "type": "object",
+          "description": "",
+          "required": false,
+          "example": true,
+          "enum": null,
+          "format": null
+        },
+        {
+          "name": "timestamp",
+          "type": "object",
+          "description": "",
+          "required": false,
+          "example": 1702989203989,
+          "enum": null,
+          "format": null
+        }
+      ],
+      "required": []
+    },
+    {
+      "name": "SpInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "FundInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "TransactionHistoryResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "ClaimInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "SpFeesHistoryResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "PeriodInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "PendingTransactionsResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultPerformanceResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultPositionsResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultPerformanceChartResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultOverallInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "UserOverallInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultLiquidatorHistoryResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultOpenOrdersResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultTradeHistoryResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "VaultOrderHistoryResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "LpInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "LpFeesHistoryResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "LpPerformanceResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "LpPerformanceChartResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "LpTransactionHistoryResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    },
+    {
+      "name": "LpClaimInfoResponse",
+      "description": "",
+      "type": "object",
+      "properties": null,
+      "required": []
+    }
+  ],
+  "commonErrors": [
+    {
+      "code": 400,
+      "message": "Bad Request",
+      "description": "Invalid request parameters"
+    },
+    {
+      "code": 404,
+      "message": "Not Found",
+      "description": "Resource does not exist"
+    },
+    {
+      "code": 429,
+      "message": "Too Many Requests",
+      "description": "Rate limit exceeded (10 req/s per IP)"
+    },
+    {
+      "code": 500,
+      "message": "Internal Server Error",
+      "description": "Server error"
+    }
+  ],
+  "metadata": {
+    "generatedAt": "2026-06-26T08:52:37.825Z",
+    "source": "https://raw.githubusercontent.com/OrderlyNetwork/documentation-public/refs/heads/main/sv.openapi.yaml",
+    "version": "1.0.0",
+    "totalEndpoints": 23,
+    "totalSchemas": 24
+  }
+}
