@@ -16,7 +16,9 @@
           "summary": "Get daily Perpetual trading information",
           "description": "This api will return `trading_fee`, `trading_count`, `trading_user_count`, `liquidation_amount`: `liquidation_count` and `opening_count` infomation of OrderlyNetwork between `from_days` and `end_days`.",
           "operationId": "get_daily_orderly_perp",
-          "tags": ["crate::trading_metrics"],
+          "tags": [
+            "crate::trading_metrics"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -48,7 +50,9 @@
           "summary": "Get daily Trading fee information",
           "description": "",
           "operationId": "daily_trading_fee",
-          "tags": ["crate::trading_metrics"],
+          "tags": [
+            "crate::trading_metrics"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -80,7 +84,9 @@
           "summary": "Get daily Trading volume information",
           "description": "",
           "operationId": "daily_volume",
-          "tags": ["crate::trading_metrics"],
+          "tags": [
+            "crate::trading_metrics"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -112,7 +118,9 @@
           "summary": "Get token deposit in recent days information",
           "description": "",
           "operationId": "get_token_deposit_rank",
-          "tags": ["crate::trading_metrics"],
+          "tags": [
+            "crate::trading_metrics"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -144,7 +152,9 @@
           "summary": "Get User perp position info ranking by holding",
           "description": "This api will retur `account_id`, `address`,`broker_id`,`symbol`,`symbol_hash`,`holding`,`total_realized_pnl`,`index_price`,`mark_price`,`holding_value`,`opening_cost`,`average_entry_price`,`un_realized_pnl` informations",
           "operationId": "get_position_rank",
-          "tags": ["crate::trading_metrics"],
+          "tags": [
+            "crate::trading_metrics"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -176,7 +186,9 @@
           "summary": "Get user perpetual info ranking by realized_pnl information",
           "description": "",
           "operationId": "get_realized_pnl_rank",
-          "tags": ["crate::trading_metrics"],
+          "tags": [
+            "crate::trading_metrics"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -208,7 +220,9 @@
           "summary": "Get daily Trading Volume ranking information",
           "description": "",
           "operationId": "get_trading_volume_rank",
-          "tags": ["crate::trading_metrics"],
+          "tags": [
+            "crate::trading_metrics"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -240,7 +254,9 @@
           "summary": "Get token withdrawal in recent days information",
           "description": "",
           "operationId": "get_token_withdraw_rank",
-          "tags": ["crate::trading_metrics"],
+          "tags": [
+            "crate::trading_metrics"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -278,7 +294,9 @@
           "summary": "Get user token/trading events informations[This api is deprecated as it may return too manay data without pagelization, please use `/events_v2` api]",
           "description": "",
           "operationId": "list_events",
-          "tags": ["crate::events::events_api"],
+          "tags": [
+            "crate::events::events_api"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -310,7 +328,9 @@
           "summary": "Get user token/trading events informations with pagelization.",
           "description": "**Note:** The returned `Settlement`, `Liquidation`, and `Adl` event types may have different schema versions (e.g. v1, v2, v3). Callers should check the version/format of each event and handle multiple versions accordingly.\n\n**Note:** `Trade` (PERPTRADE) has added fields such as `margin_mode`; callers should be aware of these fields and handle them when parsing the response.",
           "operationId": "list_events_v2",
-          "tags": ["crate::events::events_api"],
+          "tags": [
+            "crate::events::events_api"
+          ],
           "parameters": [],
           "requestBody": {
             "description": "account events, filter by `account_id` or `broker_id` + `address`, timestamp of `from_time` and `to_time`, `from_time` has a defualt value of two weeks ago, `to_time` has a default value of current timestamp, and `event_type` is optinal `enum` with value \"`TRANSACTION` | `PERPTRADE` | `SETTLEMENT` | `LIQUIDATION` | `ADL`. if `event_type` is not be set, this api will return all events without filtering by type.\n\n\nAll of `TRANSACTION` and `ADL` events will be returned at first page of the request, without `***_event_next_cursor` params in the request body.\n\nIf the returning events data have `PERPTRADE` events, and `trading_event_next_cursor` is not null in response, the `PERPTRADE` events were paginated, need to take `trading_event_next_cursor` into request body to query next page of `PERPTRADE` events.\n\nIf the returning events data have `SETTLEMENT` events, and `settlement_event_next_cursor` is not null in response, the `PERPTRADE` events were paginated, need to take `settlement_event_next_cursor` into request body to query next page of `SETTLEMENT` events.\n\nIf the returning events data have `LIQUIDATION` events, and `liquidation_event_next_cursor` is not null in response, the `LIQUIDATION` events were paginated, need to take `liquidation_event_next_cursor` into request body to query next page of `LIQUIDATION` events.\n\nexample1: query first page by `account_id` and time range \n\n```json\n{ \n  \"account_id\": \"0x23fe190da12f7bf0f910416b9c1a9723859f3823bb5a19fbc22cd52ff7a9b30d\",\n  \"event_type\": \"PERPTRADE\",\n  \"from_time\": 1720604240,\n  \"to_time\": 1721468240 \n}\n```\n\n example2 query next page with `trading_event_next_cursor` from last response: \n\n ```json\n{ \n  \"address\": \"0x72d5a3ab49c38bf7b2c658a9f1790945a6d308a8\",\n  \"broker_id\": \"orderly\", \n  \"event_type\": \"PERPTRADE\", \n  \"from_time\": 1720604240,\n  \"to_time\": 1721468240, \n  \"trading_event_next_cursor\": { \n      \"block_time\": 1720626618,\n      \"block_number\": 14547123,\n      \"transaction_index\": 2,\n      \"log_index\": 44 \n    } \n} \n ```\n example3 query trading events from testnet by shell: \n\n ```shell\ncurl --location 'https://dev-orderly-dashboard-query-service.orderly.network/events_v2' --header 'Content-Type: application/json' --data '{\n    \"account_id\": \"0x23fe190da12f7bf0f910416b9c1a9723859f3823bb5a19fbc22cd52ff7a9b30d\",\n    \"event_type\": \"PERPTRADE\",\n    \"from_time\": 1720604240,\n    \"to_time\": 1721468240\n}'\n```\n example4 query settlement events from testnet by shell: \n\n ```shell\ncurl --location 'https://dev-orderly-dashboard-query-service.orderly.network/events_v2' --header 'Content-Type: application/json' --data '{\n    \"account_id\": \"0x2c5668c26884876b76a894fcaf7fc3b450ac083675277e3de7e4746c552415ef\",\n    \"event_type\": \"SETTLEMENT\",\n    \"from_time\": 1693897830,\n    \"to_time\": 1693897934\n}'\n```\nexample5 query liquidation events from testnet by shell: \n\n```shell\ncurl --location 'https://dev-orderly-dashboard-query-service.orderly.network/events_v2' --header 'Content-Type: application/json' --data '{\n    \"account_id\": \"0x1dccb008a39e4926c58be0f6ca292701256cb117c5c810f84c2a1aa4df93dae9\",\n    \"event_type\": \"LIQUIDATION\",\n    \"from_time\": 1696749600,\n    \"to_time\": 1696749740\n}'\n```\nexample6 query trasnaction(deposit|withdraw) events from testnet by shell: \n\n```shell\ncurl --location 'https://dev-orderly-dashboard-query-service.orderly.network/events_v2' --header 'Content-Type: application/json' --data '{\n    \"account_id\": \"0x4b725ba3965a77eeaf04acbc6f25e0aac69ca24500f3351d18ec75f09fb2ac11\",\n    \"event_type\": \"TRANSACTION\",\n    \"from_time\": 1693818900,\n    \"to_time\": 1693818980\n}'\n```\n    ",
@@ -344,7 +364,9 @@
           "summary": "Get Account Volume Statistic information",
           "description": "",
           "operationId": "get_account_volume_statistic",
-          "tags": ["crate::trading_metrics::volume_statistic"],
+          "tags": [
+            "crate::trading_metrics::volume_statistic"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -376,7 +398,9 @@
           "summary": "Get Broker Volume Statistic information",
           "description": "",
           "operationId": "get_broker_volume_statistic",
-          "tags": ["crate::trading_metrics::volume_statistic"],
+          "tags": [
+            "crate::trading_metrics::volume_statistic"
+          ],
           "parameters": [
             {
               "name": "param",
@@ -414,7 +438,9 @@
           "summary": "Query trades from partitioned_executed_trades table.",
           "description": "This API allows querying trades filtered by at most one of `broker_id`, `account_id`, `address` or `symbol` (all optional) with a required time range.\nAll of these filter fields are optional: you may provide **no filter at all** (to query all trades in the time range) or provide **exactly one** of them.\nResults are sorted by (block_number, transaction_index, log_index) and paginated with `QUERY_TRADES_PAGE_SIZE` records per page (see `/trades_status` API for the current value).\n\nTime Range: The time range between `from_time` and `to_time` must not exceed `MAX_TIME_RANGE_SECONDS` (see `/trades_status` API for the current value).\n\nPagination: If next_cursor is returned, use it in the next request to get the next page.",
           "operationId": "query_trades",
-          "tags": ["crate::trades::trades_api"],
+          "tags": [
+            "crate::trades::trades_api"
+          ],
           "parameters": [],
           "requestBody": {
             "description": "Query trades request. All filter fields (broker_id, account_id, address, symbol) are optional: you may provide none of them, or provide exactly one of them (at most one may be set).",
@@ -442,7 +468,9 @@
           "summary": "Get trades status including EngineStartTime and LastRpcProcessTimeStamp",
           "description": "This API returns the current values of:\n- engine_start_time: The engine start time (contract deployment height) from indexer database settings\n- last_rpc_process_timestamp: The last RPC processed timestamp from indexer database settings\n- query_trades_page_size: The page size for query trades API (number of records per page)\n- max_time_range_seconds: The maximum allowed time range for query trades API (in seconds)",
           "operationId": "get_trades_status",
-          "tags": ["crate::trades::trades_api"],
+          "tags": [
+            "crate::trades::trades_api"
+          ],
           "parameters": [],
           "requestBody": null,
           "responses": [
@@ -464,7 +492,9 @@
       "summary": "Get daily Perpetual trading information",
       "description": "This api will return `trading_fee`, `trading_count`, `trading_user_count`, `liquidation_amount`: `liquidation_count` and `opening_count` infomation of OrderlyNetwork between `from_days` and `end_days`.",
       "operationId": "get_daily_orderly_perp",
-      "tags": ["crate::trading_metrics"],
+      "tags": [
+        "crate::trading_metrics"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -496,7 +526,9 @@
       "summary": "Get daily Trading fee information",
       "description": "",
       "operationId": "daily_trading_fee",
-      "tags": ["crate::trading_metrics"],
+      "tags": [
+        "crate::trading_metrics"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -528,7 +560,9 @@
       "summary": "Get daily Trading volume information",
       "description": "",
       "operationId": "daily_volume",
-      "tags": ["crate::trading_metrics"],
+      "tags": [
+        "crate::trading_metrics"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -560,7 +594,9 @@
       "summary": "Get user token/trading events informations[This api is deprecated as it may return too manay data without pagelization, please use `/events_v2` api]",
       "description": "",
       "operationId": "list_events",
-      "tags": ["crate::events::events_api"],
+      "tags": [
+        "crate::events::events_api"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -592,7 +628,9 @@
       "summary": "Get user token/trading events informations with pagelization.",
       "description": "**Note:** The returned `Settlement`, `Liquidation`, and `Adl` event types may have different schema versions (e.g. v1, v2, v3). Callers should check the version/format of each event and handle multiple versions accordingly.\n\n**Note:** `Trade` (PERPTRADE) has added fields such as `margin_mode`; callers should be aware of these fields and handle them when parsing the response.",
       "operationId": "list_events_v2",
-      "tags": ["crate::events::events_api"],
+      "tags": [
+        "crate::events::events_api"
+      ],
       "parameters": [],
       "requestBody": {
         "description": "account events, filter by `account_id` or `broker_id` + `address`, timestamp of `from_time` and `to_time`, `from_time` has a defualt value of two weeks ago, `to_time` has a default value of current timestamp, and `event_type` is optinal `enum` with value \"`TRANSACTION` | `PERPTRADE` | `SETTLEMENT` | `LIQUIDATION` | `ADL`. if `event_type` is not be set, this api will return all events without filtering by type.\n\n\nAll of `TRANSACTION` and `ADL` events will be returned at first page of the request, without `***_event_next_cursor` params in the request body.\n\nIf the returning events data have `PERPTRADE` events, and `trading_event_next_cursor` is not null in response, the `PERPTRADE` events were paginated, need to take `trading_event_next_cursor` into request body to query next page of `PERPTRADE` events.\n\nIf the returning events data have `SETTLEMENT` events, and `settlement_event_next_cursor` is not null in response, the `PERPTRADE` events were paginated, need to take `settlement_event_next_cursor` into request body to query next page of `SETTLEMENT` events.\n\nIf the returning events data have `LIQUIDATION` events, and `liquidation_event_next_cursor` is not null in response, the `LIQUIDATION` events were paginated, need to take `liquidation_event_next_cursor` into request body to query next page of `LIQUIDATION` events.\n\nexample1: query first page by `account_id` and time range \n\n```json\n{ \n  \"account_id\": \"0x23fe190da12f7bf0f910416b9c1a9723859f3823bb5a19fbc22cd52ff7a9b30d\",\n  \"event_type\": \"PERPTRADE\",\n  \"from_time\": 1720604240,\n  \"to_time\": 1721468240 \n}\n```\n\n example2 query next page with `trading_event_next_cursor` from last response: \n\n ```json\n{ \n  \"address\": \"0x72d5a3ab49c38bf7b2c658a9f1790945a6d308a8\",\n  \"broker_id\": \"orderly\", \n  \"event_type\": \"PERPTRADE\", \n  \"from_time\": 1720604240,\n  \"to_time\": 1721468240, \n  \"trading_event_next_cursor\": { \n      \"block_time\": 1720626618,\n      \"block_number\": 14547123,\n      \"transaction_index\": 2,\n      \"log_index\": 44 \n    } \n} \n ```\n example3 query trading events from testnet by shell: \n\n ```shell\ncurl --location 'https://dev-orderly-dashboard-query-service.orderly.network/events_v2' --header 'Content-Type: application/json' --data '{\n    \"account_id\": \"0x23fe190da12f7bf0f910416b9c1a9723859f3823bb5a19fbc22cd52ff7a9b30d\",\n    \"event_type\": \"PERPTRADE\",\n    \"from_time\": 1720604240,\n    \"to_time\": 1721468240\n}'\n```\n example4 query settlement events from testnet by shell: \n\n ```shell\ncurl --location 'https://dev-orderly-dashboard-query-service.orderly.network/events_v2' --header 'Content-Type: application/json' --data '{\n    \"account_id\": \"0x2c5668c26884876b76a894fcaf7fc3b450ac083675277e3de7e4746c552415ef\",\n    \"event_type\": \"SETTLEMENT\",\n    \"from_time\": 1693897830,\n    \"to_time\": 1693897934\n}'\n```\nexample5 query liquidation events from testnet by shell: \n\n```shell\ncurl --location 'https://dev-orderly-dashboard-query-service.orderly.network/events_v2' --header 'Content-Type: application/json' --data '{\n    \"account_id\": \"0x1dccb008a39e4926c58be0f6ca292701256cb117c5c810f84c2a1aa4df93dae9\",\n    \"event_type\": \"LIQUIDATION\",\n    \"from_time\": 1696749600,\n    \"to_time\": 1696749740\n}'\n```\nexample6 query trasnaction(deposit|withdraw) events from testnet by shell: \n\n```shell\ncurl --location 'https://dev-orderly-dashboard-query-service.orderly.network/events_v2' --header 'Content-Type: application/json' --data '{\n    \"account_id\": \"0x4b725ba3965a77eeaf04acbc6f25e0aac69ca24500f3351d18ec75f09fb2ac11\",\n    \"event_type\": \"TRANSACTION\",\n    \"from_time\": 1693818900,\n    \"to_time\": 1693818980\n}'\n```\n    ",
@@ -620,7 +658,9 @@
       "summary": "Get Account Volume Statistic information",
       "description": "",
       "operationId": "get_account_volume_statistic",
-      "tags": ["crate::trading_metrics::volume_statistic"],
+      "tags": [
+        "crate::trading_metrics::volume_statistic"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -652,7 +692,9 @@
       "summary": "Get Broker Volume Statistic information",
       "description": "",
       "operationId": "get_broker_volume_statistic",
-      "tags": ["crate::trading_metrics::volume_statistic"],
+      "tags": [
+        "crate::trading_metrics::volume_statistic"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -684,7 +726,9 @@
       "summary": "Get token deposit in recent days information",
       "description": "",
       "operationId": "get_token_deposit_rank",
-      "tags": ["crate::trading_metrics"],
+      "tags": [
+        "crate::trading_metrics"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -716,7 +760,9 @@
       "summary": "Get User perp position info ranking by holding",
       "description": "This api will retur `account_id`, `address`,`broker_id`,`symbol`,`symbol_hash`,`holding`,`total_realized_pnl`,`index_price`,`mark_price`,`holding_value`,`opening_cost`,`average_entry_price`,`un_realized_pnl` informations",
       "operationId": "get_position_rank",
-      "tags": ["crate::trading_metrics"],
+      "tags": [
+        "crate::trading_metrics"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -748,7 +794,9 @@
       "summary": "Get user perpetual info ranking by realized_pnl information",
       "description": "",
       "operationId": "get_realized_pnl_rank",
-      "tags": ["crate::trading_metrics"],
+      "tags": [
+        "crate::trading_metrics"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -780,7 +828,9 @@
       "summary": "Get daily Trading Volume ranking information",
       "description": "",
       "operationId": "get_trading_volume_rank",
-      "tags": ["crate::trading_metrics"],
+      "tags": [
+        "crate::trading_metrics"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -812,7 +862,9 @@
       "summary": "Get token withdrawal in recent days information",
       "description": "",
       "operationId": "get_token_withdraw_rank",
-      "tags": ["crate::trading_metrics"],
+      "tags": [
+        "crate::trading_metrics"
+      ],
       "parameters": [
         {
           "name": "param",
@@ -844,7 +896,9 @@
       "summary": "Query trades from partitioned_executed_trades table.",
       "description": "This API allows querying trades filtered by at most one of `broker_id`, `account_id`, `address` or `symbol` (all optional) with a required time range.\nAll of these filter fields are optional: you may provide **no filter at all** (to query all trades in the time range) or provide **exactly one** of them.\nResults are sorted by (block_number, transaction_index, log_index) and paginated with `QUERY_TRADES_PAGE_SIZE` records per page (see `/trades_status` API for the current value).\n\nTime Range: The time range between `from_time` and `to_time` must not exceed `MAX_TIME_RANGE_SECONDS` (see `/trades_status` API for the current value).\n\nPagination: If next_cursor is returned, use it in the next request to get the next page.",
       "operationId": "query_trades",
-      "tags": ["crate::trades::trades_api"],
+      "tags": [
+        "crate::trades::trades_api"
+      ],
       "parameters": [],
       "requestBody": {
         "description": "Query trades request. All filter fields (broker_id, account_id, address, symbol) are optional: you may provide none of them, or provide exactly one of them (at most one may be set).",
@@ -872,7 +926,9 @@
       "summary": "Get trades status including EngineStartTime and LastRpcProcessTimeStamp",
       "description": "This API returns the current values of:\n- engine_start_time: The engine start time (contract deployment height) from indexer database settings\n- last_rpc_process_timestamp: The last RPC processed timestamp from indexer database settings\n- query_trades_page_size: The page size for query trades API (number of records per page)\n- max_time_range_seconds: The maximum allowed time range for query trades API (in seconds)",
       "operationId": "get_trades_status",
-      "tags": ["crate::trades::trades_api"],
+      "tags": [
+        "crate::trades::trades_api"
+      ],
       "parameters": [],
       "requestBody": null,
       "responses": [
@@ -902,7 +958,10 @@
         },
         {
           "name": "liquidation_count",
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -920,7 +979,10 @@
         },
         {
           "name": "page_size_limit",
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -929,7 +991,10 @@
         },
         {
           "name": "settlement_count",
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -947,7 +1012,10 @@
         },
         {
           "name": "trades_count",
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -964,7 +1032,9 @@
           "format": null
         }
       ],
-      "required": ["events"]
+      "required": [
+        "events"
+      ]
     },
     {
       "name": "AccountVolumeStatistic",
@@ -1080,7 +1150,9 @@
           "format": null
         }
       ],
-      "required": ["account_id"]
+      "required": [
+        "account_id"
+      ]
     },
     {
       "name": "AccoutTradingCursor",
@@ -1124,7 +1196,12 @@
           "format": "int32"
         }
       ],
-      "required": ["block_time", "block_number", "transaction_index", "log_index"]
+      "required": [
+        "block_time",
+        "block_number",
+        "transaction_index",
+        "log_index"
+      ]
     },
     {
       "name": "BrokerVolumeStatistic",
@@ -1210,7 +1287,9 @@
           "format": null
         }
       ],
-      "required": ["broker_id"]
+      "required": [
+        "broker_id"
+      ]
     },
     {
       "name": "DailyRequest",
@@ -1262,7 +1341,10 @@
           "format": null
         }
       ],
-      "required": ["daytime", "fee_amount"]
+      "required": [
+        "daytime",
+        "fee_amount"
+      ]
     },
     {
       "name": "DailyVolumeExtern",
@@ -1288,7 +1370,10 @@
           "format": null
         }
       ],
-      "required": ["daytime", "volume"]
+      "required": [
+        "daytime",
+        "volume"
+      ]
     },
     {
       "name": "DepositWithdrawRankingRequest",
@@ -1323,7 +1408,9 @@
           "format": null
         }
       ],
-      "required": ["token"]
+      "required": [
+        "token"
+      ]
     },
     {
       "name": "FailureResponse",
@@ -1358,7 +1445,11 @@
           "format": null
         }
       ],
-      "required": ["success", "code", "message"]
+      "required": [
+        "success",
+        "code",
+        "message"
+      ]
     },
     {
       "name": "GetAccountEventsRequest",
@@ -1367,7 +1458,10 @@
       "properties": [
         {
           "name": "account_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1376,7 +1470,10 @@
         },
         {
           "name": "address",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1385,7 +1482,10 @@
         },
         {
           "name": "broker_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1394,7 +1494,10 @@
         },
         {
           "name": "event_type",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1429,7 +1532,10 @@
       "properties": [
         {
           "name": "account_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1438,7 +1544,10 @@
         },
         {
           "name": "address",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1447,7 +1556,10 @@
         },
         {
           "name": "broker_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1456,7 +1568,10 @@
         },
         {
           "name": "event_type",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1739,7 +1854,10 @@
         },
         {
           "name": "margin_asset_hash",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1757,7 +1875,10 @@
         },
         {
           "name": "margin_to_cross",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -1815,7 +1936,10 @@
       "name": "MarginMode",
       "description": "",
       "type": "enum",
-      "enum": ["CROSS", "ISOLATED"]
+      "enum": [
+        "CROSS",
+        "ISOLATED"
+      ]
     },
     {
       "name": "OrderlyPerpDaily",
@@ -1938,7 +2062,12 @@
           "format": "int32"
         }
       ],
-      "required": ["block_number", "transaction_index", "log_index", "block_time"]
+      "required": [
+        "block_number",
+        "transaction_index",
+        "log_index",
+        "block_time"
+      ]
     },
     {
       "name": "PaginationCursorRequest",
@@ -1982,7 +2111,12 @@
           "format": "int32"
         }
       ],
-      "required": ["block_number", "transaction_index", "log_index", "block_time"]
+      "required": [
+        "block_number",
+        "transaction_index",
+        "log_index",
+        "block_time"
+      ]
     },
     {
       "name": "PnlRankingRequest",
@@ -2009,7 +2143,10 @@
         },
         {
           "name": "symbol",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2026,7 +2163,10 @@
       "properties": [
         {
           "name": "account_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2035,7 +2175,10 @@
         },
         {
           "name": "address",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2044,7 +2187,10 @@
         },
         {
           "name": "broker_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2071,7 +2217,10 @@
         },
         {
           "name": "symbol",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2085,7 +2234,10 @@
       "name": "PurchaseSide",
       "description": "",
       "type": "enum",
-      "enum": ["BUY", "SELL"]
+      "enum": [
+        "BUY",
+        "SELL"
+      ]
     },
     {
       "name": "QeuryServiceResponse_AccountVolumeStatistic",
@@ -2112,7 +2264,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2129,7 +2284,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QeuryServiceResponse_BrokerVolumeStatistic",
@@ -2156,7 +2314,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2173,7 +2334,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QeuryServiceResponse_DailyData_OrderlyPerpDaily",
@@ -2200,7 +2364,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2217,7 +2384,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QeuryServiceResponse_DailyTradingFeeExtern",
@@ -2244,7 +2414,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2261,7 +2434,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QeuryServiceResponse_DailyVolumeExtern",
@@ -2288,7 +2464,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2305,7 +2484,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QeuryServiceResponse_TradingVolumeRanking",
@@ -2332,7 +2514,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2349,7 +2534,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QeuryServiceResponse_UserSummaryRankExtern",
@@ -2376,7 +2564,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2393,7 +2584,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QeuryServiceResponse_Vec_TokenAmountRanking",
@@ -2420,7 +2614,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2437,7 +2634,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QeuryServiceResponse_Vec_TradingPnlRanking",
@@ -2464,7 +2664,10 @@
         },
         {
           "name": "err_msg",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2481,7 +2684,10 @@
           "format": null
         }
       ],
-      "required": ["success", "err_code"]
+      "required": [
+        "success",
+        "err_code"
+      ]
     },
     {
       "name": "QueryTradesRequest",
@@ -2490,7 +2696,10 @@
       "properties": [
         {
           "name": "account_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2499,7 +2708,10 @@
         },
         {
           "name": "address",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2508,7 +2720,10 @@
         },
         {
           "name": "broker_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2535,7 +2750,10 @@
         },
         {
           "name": "symbol",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2552,7 +2770,10 @@
           "format": "int64"
         }
       ],
-      "required": ["from_time", "to_time"]
+      "required": [
+        "from_time",
+        "to_time"
+      ]
     },
     {
       "name": "QueryTradesResponse",
@@ -2578,13 +2799,18 @@
           "format": null
         }
       ],
-      "required": ["trades"]
+      "required": [
+        "trades"
+      ]
     },
     {
       "name": "RealizedPnlRankingOrder",
       "description": "",
       "type": "enum",
-      "enum": ["ASC", "DESC"]
+      "enum": [
+        "ASC",
+        "DESC"
+      ]
     },
     {
       "name": "RealizedPnlRankingRequest",
@@ -2593,7 +2819,10 @@
       "properties": [
         {
           "name": "account_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2602,7 +2831,10 @@
         },
         {
           "name": "address",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2611,7 +2843,10 @@
         },
         {
           "name": "broker_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2642,12 +2877,18 @@
           "description": "",
           "required": false,
           "example": null,
-          "enum": ["ASC", "DESC"],
+          "enum": [
+            "ASC",
+            "DESC"
+          ],
           "format": null
         },
         {
           "name": "symbol",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2699,7 +2940,12 @@
           "format": null
         }
       ],
-      "required": ["symbol_hash", "mark_price", "sum_unitary_fundings", "settled_amount"]
+      "required": [
+        "symbol_hash",
+        "mark_price",
+        "sum_unitary_fundings",
+        "settled_amount"
+      ]
     },
     {
       "name": "SettlementExecutionV3",
@@ -2721,7 +2967,10 @@
           "description": "",
           "required": true,
           "example": null,
-          "enum": ["CROSS", "ISOLATED"],
+          "enum": [
+            "CROSS",
+            "ISOLATED"
+          ],
           "format": null
         },
         {
@@ -2794,7 +3043,10 @@
           "format": null
         }
       ],
-      "required": ["success", "data"]
+      "required": [
+        "success",
+        "data"
+      ]
     },
     {
       "name": "TokenAmountRanking",
@@ -2829,7 +3081,11 @@
           "format": null
         }
       ],
-      "required": ["account_id", "token_hash", "amount"]
+      "required": [
+        "account_id",
+        "token_hash",
+        "amount"
+      ]
     },
     {
       "name": "Trade",
@@ -2874,7 +3130,10 @@
         },
         {
           "name": "iso_margin_asset_hash",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2883,7 +3142,10 @@
         },
         {
           "name": "margin_from_cross",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -2923,7 +3185,10 @@
           "description": "",
           "required": true,
           "example": null,
-          "enum": ["BUY", "SELL"],
+          "enum": [
+            "BUY",
+            "SELL"
+          ],
           "format": null
         },
         {
@@ -3003,7 +3268,10 @@
         },
         {
           "name": "address",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -3030,7 +3298,10 @@
         },
         {
           "name": "broker_hash",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -3066,7 +3337,10 @@
         },
         {
           "name": "iso_margin_asset_hash",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -3084,7 +3358,10 @@
         },
         {
           "name": "margin_from_cross",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -3124,7 +3401,10 @@
           "description": "",
           "required": true,
           "example": null,
-          "enum": ["BUY", "SELL"],
+          "enum": [
+            "BUY",
+            "SELL"
+          ],
           "format": null
         },
         {
@@ -3174,7 +3454,10 @@
         },
         {
           "name": "transaction_id",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "",
           "required": false,
           "example": null,
@@ -3368,19 +3651,28 @@
           "format": null
         }
       ],
-      "required": ["account_ids", "volume"]
+      "required": [
+        "account_ids",
+        "volume"
+      ]
     },
     {
       "name": "TransactionSide",
       "description": "",
       "type": "enum",
-      "enum": ["deposit", "withdraw"]
+      "enum": [
+        "deposit",
+        "withdraw"
+      ]
     },
     {
       "name": "TransactionStatus",
       "description": "",
       "type": "enum",
-      "enum": ["succeed", "failed"]
+      "enum": [
+        "succeed",
+        "failed"
+      ]
     },
     {
       "name": "UserSumaryRankingData",
@@ -3536,7 +3828,9 @@
           "format": null
         }
       ],
-      "required": ["rows"]
+      "required": [
+        "rows"
+      ]
     },
     {
       "name": "VolumeRankingRequest",
@@ -3583,7 +3877,7 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-04-02T11:12:52.356Z",
+    "generatedAt": "2026-07-13T07:52:14.094Z",
     "source": "https://orderly-dashboard-query-service.orderly.network/api-docs/openapi.json",
     "version": "0.1.0",
     "totalEndpoints": 14,

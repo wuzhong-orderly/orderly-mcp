@@ -58,6 +58,17 @@ This is a Model Context Protocol (MCP) server that provides Orderly Network docu
 yarn build
 ```
 
+### Refresh API Data (Free)
+
+Regenerate all OpenAPI-sourced data files with no AI calls or API keys:
+
+```bash
+yarn update:free
+```
+
+Runs: `generate_api_from_openapi`, `generate_indexer_api`, `generate_sv_api`,
+`generate_contracts`, and `generate_orderly_one_api` — then builds and tests.
+
 ### Run Tests
 
 ```bash

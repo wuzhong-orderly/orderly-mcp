@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "update:free": "node scripts/generate_api_from_openapi.js && node scripts/generate_indexer_api.js && node scripts/generate_sv_api.js && node scripts/generate_contracts.js && node scripts/generate_orderly_one_api.js && yarn build && yarn test:run"
   },
   "keywords": [
     "orderly",

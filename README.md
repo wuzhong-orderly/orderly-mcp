@@ -558,6 +558,16 @@ orderly-mcp/
 
 All data files in `src/data/` are auto-generated via scripts in the `scripts/` folder. **Do not edit JSON files manually** - they will be overwritten when regeneration scripts run.
 
+### Quick Free Refresh
+
+Refresh all OpenAPI-sourced data (no AI calls, no API keys, internet only):
+
+```bash
+yarn update:free
+```
+
+This runs: `generate_api_from_openapi`, `generate_indexer_api`, `generate_sv_api`, `generate_contracts`, and `generate_orderly_one_api`, then builds and tests.
+
 ### Prerequisites
 
 1. NEAR AI API key in `.env` file: `NEAR_AI_API_KEY=your_key`
