@@ -37,6 +37,7 @@ This is a Model Context Protocol (MCP) server that provides Orderly Network docu
 - `componentGuides.ts` - Component building guides
 - `orderlyOneApi.ts` - Orderly One API documentation
 - `svApi.ts` - Strategy Vault API documentation
+- `publicInfoApi.ts` - Public Info API documentation
 
 **Data** (`src/data/*.json`):
 
@@ -75,6 +76,31 @@ yarn format:check      # Check formatting
 yarn typecheck         # TypeScript check
 ```
 
+> `.prettierignore` excludes generated artifacts (`src/data/**/*.json`, root
+> `*_analysis.json`, `dist/`, lockfiles, etc.), so `format:check` reflects real
+> source code only. Never format the generated JSON in `src/data/` by hand.
+
+### Verification (run after EVERY change)
+
+After any source change, run the full gate and ensure **all** pass before
+reporting a task complete:
+
+```bash
+yarn typecheck && yarn lint && yarn format:check && yarn test:run && yarn build
+```
+
+- **`typecheck`** — `tsc --noEmit`; must be error-free.
+- **`lint`** — ESLint with `--max-warnings 0`; fix *all* errors (including stale
+  `eslint-disable` directives) before finishing.
+- **`format:check`** — Prettier. If it fails on a file you touched, run
+  `npx prettier --write <file>`. Do not "fix" failures by adding ignores.
+- **`test:run`** — Vitest one-shot; every suite must pass.
+- **`build`** — esbuild bundle + type declarations; the data dir is copied to
+  `dist/`, so re-run after changing anything under `src/data/`.
+
+Only report a task as complete once the full gate is green. If a check cannot
+pass for a legitimate reason, state that explicitly rather than claiming success.
+
 ### Development
 
 ```bash
@@ -108,7 +134,9 @@ src/
 │   ├── apiInfo.ts             # API info
 │   ├── indexerApi.ts          # Indexer API info
 │   ├── componentGuides.ts     # Component guides
-│   └── orderlyOneApi.ts       # Orderly One API documentation
+│   ├── orderlyOneApi.ts       # Orderly One API documentation
+│   ├── svApi.ts               # Strategy Vault API documentation
+│   └── publicInfoApi.ts       # Public Info API documentation
 ├── resources/
 │   └── index.ts               # Resource handlers
 ├── data/                       # Static data
@@ -120,6 +148,7 @@ src/
 │   ├── indexer-api.json       # Indexer API docs
 │   ├── orderly-one-api.json   # Orderly One API documentation
 │   ├── sv-api.json             # Strategy Vault API documentation
+│   ├── public-info-api.json    # Public Info API documentation
 │   ├── component-guides.json   # Component guides
 │   └── resources/
 │       └── overview.md
@@ -456,6 +485,32 @@ cd ../dex-creator/api && yarn dev
 node scripts/generate_orderly_one_api.js
 ```
 
+#### `scripts/generate_public_info_api.js`
+
+**Purpose:** Generate Public Info API documentation from the sibling MDX docs repo  
+**Input:** `../documentation/build-on-omnichain/public-info-api/` (23 query-type `.mdx` files + `overview.mdx`; override with `ORDERLY_DOCS_DIR`)  
+**Output:** `src/data/public-info-api.json`  
+**Cost:** **FREE** (no AI, no network — pure local MDX parsing)
+
+The Public Info API is a **single POST endpoint** (`POST /v1/public/query`) whose behaviour is selected by a `type` field. This generator parses the structured MDX files (frontmatter + weight line + request/response markdown tables + JSON example blocks) rather than an OpenAPI spec, because no OpenAPI spec exists for it.
+
+Extracts **24 query types** across 4 categories:
+
+- **Market data** (no address): `marketSummary`, `marketDetail`, `orderbook`, `candles`, `marketTrades`, `liquidations`, `fundingRateHistory`, `fundingComparison`
+- **Account data** (require `address`): `accounts`, `accountState`, `agentContext`, `feeRate`, `fundingPayments`, `historicalOrders`, `openOrders`, `orderStatus`, `portfolio`, `positionContext`, `trades`, `userDepositsWithdrawals`, `whaleContext`
+- **Platform data**: `topAddresses`, `platformPositions`
+- **System**: `rateLimitStatus` (extracted from `overview.mdx`, weight 0)
+
+Per query type it captures: `type`, title, description, weight, request params (structured), response field tables (raw markdown for fidelity), labelled response examples, notes, pagination flag, and freshness. The overview block carries the endpoint URL, error codes, address-resolution rules, pagination cursor shapes, rate-limit weight tiers, and a freshness table.
+
+**Usage:**
+
+```bash
+node scripts/generate_public_info_api.js
+# Override docs location:
+ORDERLY_DOCS_DIR=/path/to/docs node scripts/generate_public_info_api.js
+```
+
 ### Cost Management
 
 **Total cost per complete run:** ~$3.50-7.00
@@ -468,6 +523,7 @@ node scripts/generate_orderly_one_api.js
 - Indexer API generation: **FREE** (parses OpenAPI spec directly)
 - SV API generation: **FREE** (parses OpenAPI spec directly)
 - Orderly One API generation: **FREE** (parses OpenAPI spec directly)
+- Public Info API generation: **FREE** (parses local MDX docs directly, no OpenAPI spec needed)
 
 **Money-saving tips:**
 

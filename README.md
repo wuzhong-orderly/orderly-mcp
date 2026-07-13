@@ -523,7 +523,9 @@ orderly-mcp/
 │   │   ├── apiInfo.ts           # API documentation
 │   │   ├── indexerApi.ts        # Indexer API documentation
 │   │   ├── componentGuides.ts   # Component building guides
-│   │   └── orderlyOneApi.ts     # Orderly One API documentation
+│   │   ├── orderlyOneApi.ts     # Orderly One API documentation
+│   │   ├── svApi.ts             # Strategy Vault API documentation
+│   │   └── publicInfoApi.ts     # Public Info API documentation
 │   ├── resources/
 │   │   └── index.ts             # Resource handlers
 │   └── data/
@@ -534,6 +536,8 @@ orderly-mcp/
 │       ├── api.json             # API specifications
 │       ├── indexer-api.json     # Indexer API documentation
 │       ├── orderly-one-api.json # Orderly One API documentation
+│       ├── sv-api.json          # Strategy Vault API documentation
+│       ├── public-info-api.json # Public Info API documentation
 │       ├── component-guides.json # Component guides
 │       └── resources/
 │           └── overview.md      # Protocol overview
@@ -639,6 +643,8 @@ yarn build
 | **api.json**              | OpenAPI spec                   | `generate_api_from_openapi.js`                                                                    |
 | **indexer-api.json**      | Indexer API OpenAPI spec       | `generate_indexer_api.js`                                                                         |
 | **orderly-one-api.json**  | Orderly One OpenAPI spec       | `generate_orderly_one_api.js`                                                                     |
+| **sv-api.json**           | Strategy Vault OpenAPI spec    | `generate_sv_api.js`                                                                              |
+| **public-info-api.json**  | Public Info API MDX docs       | `generate_public_info_api.js`                                                                     |
 | **contracts.json**        | Official docs (llms-full.txt)  | `generate_contracts.js`                                                                           |
 
 ## Contributing

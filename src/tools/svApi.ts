@@ -83,10 +83,7 @@ function getFuseInstance(): Fuse<SvEndpoint> {
   return fuseInstance;
 }
 
-export async function getSvApiInfo(
-  endpoint?: string,
-  category?: string
-): Promise<SvApiInfoResult> {
+export async function getSvApiInfo(endpoint?: string, category?: string): Promise<SvApiInfoResult> {
   const data = svApiData as SvApiData;
 
   if (category) {

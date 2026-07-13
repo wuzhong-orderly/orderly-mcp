@@ -1,0 +1,1890 @@
+{
+  "version": "1.0.0",
+  "title": "Orderly Network Public Info API",
+  "description": "Zero-auth, single-endpoint query API for AI agents, quant traders, and analytics. POST /v1/public/query with a `type` field — covers market, account, and platform data.",
+  "endpoint": {
+    "method": "POST",
+    "url": "https://api.orderly.org/v1/public/query",
+    "contentType": "application/json"
+  },
+  "auth": "none",
+  "baseUrl": {
+    "mainnet": "https://api.orderly.org/v1/public/query",
+    "testnet": "https://api.orderly.org/v1/public/query"
+  },
+  "categories": [
+    {
+      "name": "market",
+      "title": "Market data",
+      "description": "Public market data: prices, OHLCV, orderbook, trades, funding, and liquidations. No address required.",
+      "queryTypes": [
+        "candles",
+        "fundingComparison",
+        "fundingRateHistory",
+        "liquidations",
+        "marketDetail",
+        "marketSummary",
+        "marketTrades",
+        "orderbook"
+      ]
+    },
+    {
+      "name": "account",
+      "title": "Account data",
+      "description": "Per-address account data: state, positions, orders, trades, funding payments, PnL, and portfolio. Requires an `address`.",
+      "queryTypes": [
+        "accounts",
+        "accountState",
+        "agentContext",
+        "feeRate",
+        "fundingPayments",
+        "historicalOrders",
+        "openOrders",
+        "orderStatus",
+        "portfolio",
+        "positionContext",
+        "trades",
+        "userDepositsWithdrawals",
+        "whaleContext"
+      ]
+    },
+    {
+      "name": "platform",
+      "title": "Platform data",
+      "description": "Platform-wide aggregates: the top-addresses leaderboard and platform-wide open positions.",
+      "queryTypes": [
+        "platformPositions",
+        "topAddresses"
+      ]
+    },
+    {
+      "name": "system",
+      "title": "System",
+      "description": "Operational queries: rate-limit status (free, weight 0).",
+      "queryTypes": [
+        "rateLimitStatus"
+      ]
+    }
+  ],
+  "queryTypes": [
+    {
+      "type": "candles",
+      "title": "Candles",
+      "category": "market",
+      "slug": "candles",
+      "description": "OHLCV kline series for a symbol and interval. Paginated by timestamp.",
+      "intro": "OHLCV candles for a symbol and interval.",
+      "weight": 2,
+      "requestExample": "{\n  \"type\": \"candles\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"interval\": \"1h\",\n  \"start_time\": 1716100000000,\n  \"end_time\": 1716200000000,\n  \"limit\": 500\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Trading pair"
+        },
+        {
+          "name": "interval",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "1m / 5m / 15m / 30m / 1h / 4h / 1d / 1w"
+        },
+        {
+          "name": "start_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch; filters open_time ≥ start_time"
+        },
+        {
+          "name": "end_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch; filters open_time ≤ end_time"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "500",
+          "notes": "1..5000"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor — pass through"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                          | Type   | Notes                               |\n| ------------------------------ | ------ | ----------------------------------- |\n| `open`, `high`, `low`, `close` | string | Decimal price                       |\n| `volume`                       | string | Base-asset volume during the candle |\n| `timestamp`                    | int64  | Candle open time (ms epoch)         |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"open\": \"12345.67\",\n        \"high\": \"12400.00\",\n        \"low\": \"12300.00\",\n        \"close\": \"12350.50\",\n        \"volume\": \"1234.56\",\n        \"timestamp\": 1716192000000\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "60s cache keyed by `(symbol, interval, time-range, cursor)`"
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/market/candles"
+    },
+    {
+      "type": "fundingComparison",
+      "title": "Funding comparison",
+      "category": "market",
+      "slug": "funding-comparison",
+      "description": "Cross-exchange funding rate comparison: last value plus 1d / 7d / 30d averages per symbol.",
+      "intro": "Per-symbol funding rate comparison across major exchanges. Reports the last observed funding rate and 1-day / 7-day / 30-day averages for each venue.",
+      "weight": 2,
+      "requestExample": "{\n  \"type\": \"fundingComparison\",\n  \"symbol\": \"PERP_BTC_USDC\"\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "default": "null",
+          "notes": "Omit → returns all symbols"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                             | Type   | Notes                                                 |\n| --------------------------------- | ------ | ----------------------------------------------------- |\n| `next_funding_time`               | int64  | ms epoch                                              |\n| `exchanges[].name`                | string | Venue identifier (e.g. `binance`, `bybit`, `orderly`) |\n| `exchanges[].last`                | string | Last observed funding rate                            |\n| `exchanges[].1d` / `.7d` / `.30d` | string | Rolling-window averages                               |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"symbol\": \"PERP_BTC_USDC\",\n        \"next_funding_time\": 1716220800000,\n        \"exchanges\": [\n          {\n            \"name\": \"binance\",\n            \"last\": \"0.00012\",\n            \"1d\": \"0.00011\",\n            \"7d\": \"0.00010\",\n            \"30d\": \"0.00009\"\n          },\n          {\n            \"name\": \"orderly\",\n            \"last\": \"0.00010\",\n            \"1d\": \"0.00009\",\n            \"7d\": \"0.00008\",\n            \"30d\": \"0.00007\"\n          }\n        ]\n      }\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "60s per-symbol cache, bounded at 256 entries",
+        "No pagination"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/market/funding-comparison"
+    },
+    {
+      "type": "fundingRateHistory",
+      "title": "Funding rate history",
+      "category": "market",
+      "slug": "funding-rate-history",
+      "description": "Historical 8-hour funding rate and mark-price snapshots for a symbol.",
+      "intro": "Historical funding rates for a symbol. Rows are written at 8-hour epoch boundaries (00:00 / 08:00 / 16:00 UTC).",
+      "weight": 2,
+      "requestExample": "{\n  \"type\": \"fundingRateHistory\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"start_time\": 1716100000000,\n  \"limit\": 500\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Trading pair"
+        },
+        {
+          "name": "start_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "end_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "500",
+          "notes": "1..5000"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                    | Type   | Notes                                   |\n| ------------------------ | ------ | --------------------------------------- |\n| `funding_rate`           | string | Per-8h cycle decimal                    |\n| `mark_price`             | string | Mark price snapped to the funding epoch |\n| `funding_rate_timestamp` | int64  | Funding epoch (ms epoch UTC)            |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"funding_rate\": \"0.0001\",\n        \"mark_price\": \"45678.90\",\n        \"funding_rate_timestamp\": 1716192000000\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "30s cache"
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/market/funding-rate-history"
+    },
+    {
+      "type": "liquidations",
+      "title": "Liquidations",
+      "category": "market",
+      "slug": "liquidations",
+      "description": "Recent liquidation events with position size, mark price, and account info.",
+      "intro": "Recent liquidation events across the platform. Each row carries the liquidated address, account, and broker.",
+      "weight": 2,
+      "requestExample": "{\n  \"type\": \"liquidations\",\n  \"symbol\": \"PERP_ETH_USDC\",\n  \"limit\": 50\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "default": "null",
+          "notes": "Omit → all symbols"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "50",
+          "notes": "1..500"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                                | Type           | Notes                                                                                 |\n| ------------------------------------ | -------------- | ------------------------------------------------------------------------------------- |\n| `side`                               | string         | `LONG` (liquidated long) or `SHORT`                                                   |\n| `position_qty`, `notional`           | string         | Decimal                                                                               |\n| `mark_price`, `est_liq_price`        | string         | Mark price at the moment of liquidation; named for symmetry with live `est_liq_price` |\n| `address`, `account_id`, `broker_id` | string \\| null | `null` if user lookup fails                                                           |\n| `timestamp`                          | int64          | ms epoch                                                                              |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"symbol\": \"PERP_ETH_USDC\",\n        \"side\": \"LONG\",\n        \"position_qty\": \"12.34\",\n        \"notional\": \"567890.12\",\n        \"mark_price\": \"4567.89\",\n        \"est_liq_price\": \"4567.89\",\n        \"address\": \"0x1234...\",\n        \"account_id\": \"0xabc...\",\n        \"broker_id\": \"orderly\",\n        \"timestamp\": 1716192000000\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Account fields resolved via internal user lookup (60s cache)"
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/market/liquidations"
+    },
+    {
+      "type": "marketDetail",
+      "title": "Market detail",
+      "category": "market",
+      "slug": "market-detail",
+      "description": "Composite single-symbol bundle: market info, orderbook, recent trades, funding history, and candles in one call.",
+      "intro": "Composite snapshot for a single symbol. The `include` field controls which of the five sub-sections are populated; all five sub-queries run in parallel, so latency ≈ slowest sub-section.",
+      "weight": 2,
+      "requestExample": "{\n  \"type\": \"marketDetail\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"include\": [\"market_info\", \"orderbook\", \"recent_trades\", \"funding_history\", \"candles\"],\n  \"orderbook_levels\": 20,\n  \"recent_trades_limit\": 20,\n  \"funding_history_limit\": 8,\n  \"candles_interval\": \"1h\",\n  \"candles_limit\": 24\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Trading pair"
+        },
+        {
+          "name": "include",
+          "type": "string[]",
+          "required": false,
+          "default": "all 5",
+          "notes": "Subset of [\"market_info\",\"orderbook\",\"recent_trades\",\"funding_history\",\"candles\"]; empty list = all"
+        },
+        {
+          "name": "orderbook_levels",
+          "type": "int",
+          "required": false,
+          "default": "20",
+          "notes": "1..100 (clamped)"
+        },
+        {
+          "name": "recent_trades_limit",
+          "type": "int",
+          "required": false,
+          "default": "20",
+          "notes": "1..100"
+        },
+        {
+          "name": "funding_history_limit",
+          "type": "int",
+          "required": false,
+          "default": "8",
+          "notes": "1..100"
+        },
+        {
+          "name": "candles_interval",
+          "type": "string",
+          "required": false,
+          "default": "\"1h\"",
+          "notes": "Same interval set as [candles](/build-on-omnichain/public-info-api/market/candles)"
+        },
+        {
+          "name": "candles_limit",
+          "type": "int",
+          "required": false,
+          "default": "24",
+          "notes": "1..500"
+        }
+      ],
+      "responseSections": [],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"symbol\": \"PERP_BTC_USDC\",\n    \"market_info\": {\n      /* same shape as marketSummary.markets[] row */\n    },\n    \"orderbook\": {\n      \"asks\": [{ \"price\": \"77339.20\", \"quantity\": \"0.45\" }],\n      \"bids\": [{ \"price\": \"77337.50\", \"quantity\": \"0.32\" }]\n    },\n    \"recent_trades\": [\n      /* same shape as marketTrades rows */\n    ],\n    \"funding_history\": [\n      /* same shape as fundingRateHistory rows */\n    ],\n    \"candles\": [\n      /* same shape as candles rows */\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Sub-sections omitted from `include` are absent from the response (key is missing, not `null`)",
+        "See individual endpoints for field-level details: [`marketSummary`](/build-on-omnichain/public-info-api/market/market-summary), [`marketTrades`](/build-on-omnichain/public-info-api/market/market-trades), [`fundingRateHistory`](/build-on-omnichain/public-info-api/market/funding-rate-history), [`candles`](/build-on-omnichain/public-info-api/market/candles)"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/market/market-detail"
+    },
+    {
+      "type": "marketSummary",
+      "title": "Market summary",
+      "category": "market",
+      "slug": "market-summary",
+      "description": "Multi-symbol snapshot of prices, funding, 24h volume, and open interest. Fast path when called with no symbols.",
+      "intro": "Multi-symbol summary of mark / index prices, 24h OHLCV, funding rates, and open interest. Two modes:",
+      "weight": 1,
+      "requestExample": "{\n  \"type\": \"marketSummary\",\n  \"symbols\": [\"PERP_BTC_USDC\", \"PERP_ETH_USDC\"]\n}",
+      "requestParams": [
+        {
+          "name": "symbols",
+          "type": "string[]",
+          "required": false,
+          "default": "null",
+          "notes": "Omit (or send empty) → all active symbols"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                                                         | Type           | Notes                                                                             |\n| ------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------- |\n| `total_24h_volume`                                            | string         | Sum across markets; `null` if no data                                             |\n| `total_open_interest`                                         | string \\| null | Sum across markets; `null` only when no symbols have open-interest data available |\n| `markets[]`                                                   | array          | Lexically ordered for stable rendering                                            |\n| `.mark_price`                                                 | string         | From mark-price stream                                                            |\n| `.index_price`                                                | string         | From index-price stream (PERP→SPOT remap applied internally)                      |\n| `.last_funding_rate`                                          | string         | Last settled funding rate                                                         |\n| `.est_funding_rate`                                           | string \\| null | `null` until the first funding estimate message arrives                           |\n| `.next_funding_time`                                          | int64          | ms epoch                                                                          |\n| `.max_leverage`, `.min_notional`, `.quote_tick`, `.base_tick` | string         | Symbol metadata                                                                   |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"total_24h_volume\": \"28589767.58005\",\n    \"total_open_interest\": \"352893408.89388\",\n    \"markets\": [\n      {\n        \"symbol\": \"PERP_BTC_USDC\",\n        \"mark_price\": \"77338.10\",\n        \"index_price\": \"77340.5\",\n        \"24h_open\": \"76500.00\",\n        \"24h_close\": \"77338.10\",\n        \"24h_high\": \"77800.00\",\n        \"24h_low\": \"76100.00\",\n        \"24h_volume\": \"1234.567\",\n        \"24h_amount\": \"95000000.0\",\n        \"open_interest\": \"12500.0\",\n        \"last_funding_rate\": \"0.00000000\",\n        \"est_funding_rate\": \"-0.00006461\",\n        \"next_funding_time\": 1779278400000,\n        \"bid_price\": \"77337.5\",\n        \"ask_price\": \"77339.2\",\n        \"max_leverage\": \"50\",\n        \"min_notional\": \"10.00000000\",\n        \"quote_tick\": \"0.10000000\",\n        \"base_tick\": \"0.00100000\"\n      }\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "**Partial results on timeout:** if individual symbol fan-out times out, returned `markets[]` includes only the successful entries",
+        "**No pagination:** response always returns the full set of requested (or active) symbols"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/market/market-summary"
+    },
+    {
+      "type": "marketTrades",
+      "title": "Market trades",
+      "category": "market",
+      "slug": "market-trades",
+      "description": "Recent taker-side trades for a symbol with address / account / broker enrichment for whale lookup.",
+      "intro": "Recent **taker-side** market trades for a symbol. Each trade carries the taker's address, account, and broker — useful for whale detection and cross-referencing with `accounts` or `accountState`.",
+      "weight": 1,
+      "requestExample": "{\n  \"type\": \"marketTrades\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"limit\": 50\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Trading pair"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "50",
+          "notes": "1..200 (silently clamped)"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                                 | Type   | Notes                                        |\n| ------------------------------------- | ------ | -------------------------------------------- |\n| `side`                                | string | Taker side — `BUY` or `SELL`                 |\n| `executed_price`, `executed_quantity` | string | Decimal                                      |\n| `address`                             | string | Taker's wallet address (full, not truncated) |\n| `account_id`                          | string | Taker's account                              |\n| `broker_id`                           | string | Broker the taker is on                       |\n| `executed_timestamp`                  | int64  | ms epoch                                     |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"symbol\": \"PERP_BTC_USDC\",\n        \"side\": \"BUY\",\n        \"executed_price\": \"77338.10\",\n        \"executed_quantity\": \"0.0123\",\n        \"address\": \"0x1234...\",\n        \"account_id\": \"0xabc...\",\n        \"broker_id\": \"orderly\",\n        \"executed_timestamp\": 1714900000000\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Filters `is_maker = false` so every trade appears exactly once (taker only)",
+        "Per-row address lookup cached 60s"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/market/market-trades"
+    },
+    {
+      "type": "orderbook",
+      "title": "Orderbook",
+      "category": "market",
+      "slug": "orderbook",
+      "description": "Orderbook snapshot with mid price and spread.",
+      "intro": "Snapshot of a symbol's orderbook with mid price and spread.",
+      "weight": 1,
+      "requestExample": "{\n  \"type\": \"orderbook\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"max_level\": 100\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Must exist in the symbols table; unknown → INVALID_PARAM"
+        },
+        {
+          "name": "max_level",
+          "type": "int",
+          "required": false,
+          "default": "100",
+          "notes": "1..1000 (silently clamped)"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field              | Type           | Notes                                                                              |\n| ------------------ | -------------- | ---------------------------------------------------------------------------------- |\n| `mid_price`        | string \\| null | `(best_ask + best_bid) / 2`, 8 decimals (`HALF_DOWN`); `null` if either side empty |\n| `spread`           | string \\| null | `best_ask − best_bid`; `null` if either side empty                                 |\n| `asks[]`, `bids[]` | array          | Best-first; trimmed to `max_level`                                                 |\n| `ts` (inner)       | int64          | Snapshot timestamp from cache (or `now` on cold cache)                             |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"symbol\": \"PERP_BTC_USDC\",\n    \"mid_price\": \"77338.35\",\n    \"spread\": \"1.70\",\n    \"asks\": [{ \"price\": \"77339.20\", \"quantity\": \"0.45\" }],\n    \"bids\": [{ \"price\": \"77337.50\", \"quantity\": \"0.32\" }],\n    \"ts\": 1714900000123\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Served from an in-memory snapshot — typically sub-millisecond",
+        "An empty book returns empty `asks` / `bids` arrays (not an error)"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/market/orderbook"
+    },
+    {
+      "type": "accounts",
+      "title": "Accounts",
+      "category": "account",
+      "slug": "accounts",
+      "description": "Discover all (broker, account) pairs an address controls. Includes regular and sub accounts.",
+      "intro": "Account discovery — given an address, list every `(broker_id, account_id)` pair the address controls (both `REGULAR` and `SUB`). Useful as the first call before drilling into per-account state.",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"accounts\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\"\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address; must resolve to at least one account"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional broker scope"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field            | Type           | Notes                                                                                                                                                          |\n| ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n| `address`        | string         | Echo of input                                                                                                                                                  |\n| `accounts[]`     | array          | One entry per account                                                                                                                                          |\n| `.broker_id`     | string         | Broker identifier                                                                                                                                              |\n| `.account_id`    | string         | Account identifier within broker                                                                                                                               |\n| `.account_type`  | string         | `\"main\"` (main account), `\"sub\"` (sub-account), or `\"sp\"` (vault strategy provider)                                                                            |\n| `.account_value` | string \\| null | Mark-to-market account value: `(holding + iso_margin_total + frozen) + Σ unrealized_pnl` across positions. `null` if position-calc is unavailable for that row |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"address\": \"0x1234...\",\n    \"accounts\": [\n      {\n        \"broker_id\": \"orderly\",\n        \"account_id\": \"0xabc...\",\n        \"account_type\": \"main\",\n        \"account_value\": \"5000.25\"\n      }\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "No pagination",
+        "Throws `ADDRESS_NOT_FOUND` (404) when zero accounts resolve",
+        "Per-row position-calc failures degrade `account_value` to `null` rather than failing the whole listing"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/account/accounts"
+    },
+    {
+      "type": "accountState",
+      "title": "Account state",
+      "category": "account",
+      "slug": "account-state",
+      "description": "Account snapshot: collateral, open positions, margin metrics, and PnL. Response shape changes based on whether account_id is supplied.",
+      "intro": "Account snapshot with collateral, open positions, margin metrics, and PnL. Response shape depends on the parameters:",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"accountState\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"broker_id\": \"orderly\",\n  \"account_id\": \"0xabc...\"\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional broker scope"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "If supplied → flat response; omitted → accounts[] array"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Account fields",
+          "markdown": "| Field                                         | Type           | Notes                                                                                                                           |\n| --------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |\n| `account_type`                                | string         | `\"main\"` (main account), `\"sub\"` (sub-account), or `\"sp\"` (vault strategy provider)                                             |\n| `account_value`                               | string \\| null | Mark-to-market account value: `total_collateral_value + Σ unrealized_pnl` across positions. `null` if position-calc unreachable |\n| `total_collateral_value`                      | string         | `Σ_token((holding + iso_margin_total + frozen) × price)`; non-USDC priced via spot index price                                  |\n| `free_collateral`                             | string \\| null | `≈ collateral × (1 − margin_ratio)`                                                                                             |\n| `margin_ratio`                                | string \\| null | From position-calc                                                                                                              |\n| `initial_margin_ratio`                        | string \\| null | `Σ(notional_i × IMR_i) / Σ notional_i` over CROSS positions only                                                                |\n| `maintenance_margin_ratio`                    | string \\| null | Minimum margin ratio required to avoid liquidation                                                                              |\n| `total_unrealized_pnl`, `total_unsettled_pnl` | string \\| null | Both from position-calc                                                                                                         |\n| `total_pnl_24_h`                              | string \\| null | Sum across positions                                                                                                            |"
+        },
+        {
+          "heading": "Position fields",
+          "markdown": "| Field                     | Type           | Notes                                                  |\n| ------------------------- | -------------- | ------------------------------------------------------ | ------- | ------------- |\n| `side`                    | string         | `\"LONG\"` if `position_qty > 0`, `\"SHORT\"` if `< 0`     |\n| `position_qty`            | string         | Signed                                                 |\n| `notional`                | string \\| null | `                                                      | qty     | × mark_price` |\n| `average_open_price`      | string \\| null | `cost_position /                                       | holding | `             |\n| `mark_price`              | string \\| null | Latest mark price for the symbol                       |\n| `imr`, `mmr`              | string \\| null | Position-level (from position-calc or symbol metadata) |\n| `est_liq_price`           | string \\| null | Estimated liquidation price                            |\n| `leverage`                | int \\| null    | Effective leverage                                     |\n| `margin_mode`             | string \\| null | `\"CROSS\"` or `\"ISOLATED\"`                              |\n| `opened_at`, `updated_at` | int64 \\| null  | ms epoch; cached 10s                                   |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "With account_id (flat)",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"address\": \"0x1234...\",\n    \"broker_id\": \"orderly\",\n    \"account_id\": \"0xabc...\",\n    \"account_type\": \"main\",\n    \"account_value\": \"50000.5\",\n    \"total_collateral_value\": \"45000\",\n    \"free_collateral\": \"30000\",\n    \"margin_ratio\": \"0.25\",\n    \"initial_margin_ratio\": \"0.12\",\n    \"maintenance_margin_ratio\": \"0.08\",\n    \"total_unrealized_pnl\": \"5000.5\",\n    \"total_unsettled_pnl\": \"100.25\",\n    \"total_pnl_24_h\": \"250.75\",\n    \"positions\": [\n      {\n        \"symbol\": \"PERP_BTC_USDC\",\n        \"side\": \"LONG\",\n        \"position_qty\": \"0.5\",\n        \"notional\": \"21500\",\n        \"average_open_price\": \"43000\",\n        \"mark_price\": \"43000\",\n        \"unrealized_pnl\": \"0\",\n        \"unsettled_pnl\": \"50.5\",\n        \"pnl_24_h\": \"100\",\n        \"imr\": \"0.05\",\n        \"mmr\": \"0.025\",\n        \"est_liq_price\": \"38000\",\n        \"leverage\": 10,\n        \"margin_mode\": \"CROSS\",\n        \"opened_at\": 1715000000000,\n        \"updated_at\": 1715100000000\n      }\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        },
+        {
+          "label": "No account_id (array)",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"address\": \"0x1234...\",\n    \"accounts\": [\n      {\n        /* same shape as the flat object above */\n      }\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Throws `ADDRESS_NOT_FOUND` (404) if no accounts match",
+        "If the position-calc service is unavailable, all margin / PnL-derived fields are `null` while other fields continue to be served",
+        "`positions[]` only contains open positions (`holding ≠ 0`)"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/account/account-state"
+    },
+    {
+      "type": "agentContext",
+      "title": "Agent context",
+      "category": "account",
+      "slug": "agent-context",
+      "description": "Agent startup bundle: account state, open positions, held-symbol market summaries, and open order count in one parallelized call.",
+      "intro": "Composite \"agent startup\" bundle. Fetches the caller's account state, open positions, market summaries for held symbols, and the count of open orders — all in one call with sub-handlers parallelized. Equivalent to calling `accountState` + `openOrders` + `marketSummary` separately, but cheaper (weight `2` vs `5 + 5 + 1 = 11`).",
+      "weight": 2,
+      "requestExample": "{\n  \"type\": \"agentContext\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"broker_id\": \"orderly\",\n  \"account_id\": \"0xabc...\"\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional — see \"Primary account\" below"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                      | Type   | Notes                                                                                                                                      |\n| -------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |\n| `account`                  | object | Single account snapshot (subset of `accountState`)                                                                                         |\n| `account.open_order_count` | int    | Count from `openOrders`; defaults to `0` on sub-handler failure                                                                            |\n| `positions[]`              | array  | Open positions (same shape as [`accountState`](/build-on-omnichain/public-info-api/account/account-state))                                 |\n| `markets[]`                | array  | One entry per symbol held in `positions[]`; same shape as [`marketSummary`](/build-on-omnichain/public-info-api/market/market-summary) row |\n| `markets[].24h_change_pct` | string | `(close - open) / open × 100` (computed at the bundle layer)                                                                               |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"account\": {\n      \"broker_id\": \"orderly\",\n      \"account_id\": \"0xabc...\",\n      \"account_value\": \"50000.5\",\n      \"total_collateral_value\": \"45000\",\n      \"free_collateral\": \"30000\",\n      \"margin_ratio\": \"0.25\",\n      \"total_unrealized_pnl\": \"5000.5\",\n      \"total_pnl_24_h\": \"250.75\",\n      \"open_order_count\": 7\n    },\n    \"positions\": [\n      /* same shape as accountState.positions[] */\n    ],\n    \"markets\": [\n      /* marketSummary row plus a 24h_change_pct field */\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "**Primary account selection** (when `account_id` is omitted): the largest `account_value`, with `account_type == \"main\"` as the tiebreaker",
+        "Sub-handlers run in parallel: `accountState ‖ openOrders`, then `marketSummary` once held symbols are known",
+        "`markets[]` only includes symbols the account actually holds — not the entire universe",
+        "For the full open orders list, call [`openOrders`](/build-on-omnichain/public-info-api/account/open-orders) separately"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/account/agent-context"
+    },
+    {
+      "type": "feeRate",
+      "title": "Fee rate",
+      "category": "account",
+      "slug": "fee-rate",
+      "description": "Fee tier, maker / taker rates, and 30-day rolling volume. Three response shapes based on params.",
+      "intro": "Fee tier and rates plus 30-day rolling volume. Response shape depends on params:",
+      "weight": 1,
+      "requestExample": "{\n  \"type\": \"feeRate\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"broker_id\": \"orderly\",\n  \"account_id\": \"0xabc...\"\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Triggers sub_accounts[] shape"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Triggers flat-object shape"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                              | Type           | Notes                                                              |\n| ---------------------------------- | -------------- | ------------------------------------------------------------------ |\n| `tier`                             | string \\| null | `PUBLIC` / `SILVER` / `GOLD` / `PLATINUM` / `DIAMOND`              |\n| `futures_tier`                     | string \\| null | Same value as `tier`                                               |\n| `maker_fee_rate`, `taker_fee_rate` | string \\| null | Decimal (`bps / 10000`)                                            |\n| `30d_volume`                       | string         | Sum of executed perp notional over the last 30 days; `\"0\"` if none |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "With account_id (flat)",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"tier\": \"PLATINUM\",\n    \"futures_tier\": \"PLATINUM\",\n    \"maker_fee_rate\": \"0.0001\",\n    \"taker_fee_rate\": \"0.0005\",\n    \"30d_volume\": \"250000\"\n  },\n  \"ts\": 1779269143700\n}"
+        },
+        {
+          "label": "With broker_id (sub_accounts)",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"sub_accounts\": [\n      {\n        \"broker_id\": \"orderly\",\n        \"account_id\": \"0xabc...\",\n        \"account_type\": \"main\",\n        \"tier\": \"PLATINUM\",\n        \"futures_tier\": \"PLATINUM\",\n        \"maker_fee_rate\": \"0.0001\",\n        \"taker_fee_rate\": \"0.0005\",\n        \"30d_volume\": \"250000\"\n      }\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        },
+        {
+          "label": "Address only (accounts)",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"accounts\": [\n      {\n        \"broker_id\": \"orderly\",\n        \"account_id\": \"0xabc...\",\n        \"account_type\": \"main\",\n        \"tier\": \"PLATINUM\",\n        \"futures_tier\": \"PLATINUM\",\n        \"maker_fee_rate\": \"0.0001\",\n        \"taker_fee_rate\": \"0.0005\",\n        \"30d_volume\": \"250000\"\n      }\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "60s cache keyed by `(address, broker_id, account_id)`",
+        "Throws `ADDRESS_NOT_FOUND` (404) if no accounts match"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/account/fee-rate"
+    },
+    {
+      "type": "fundingPayments",
+      "title": "Funding payments",
+      "category": "account",
+      "slug": "funding-payments",
+      "description": "Funding-fee payment history with payment direction and settlement status.",
+      "intro": "Funding-fee payment history for an address. Each row shows the funding rate at the epoch, the resulting fee, and whether the fee has been settled.",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"fundingPayments\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"start_time\": 1715000000000,\n  \"limit\": 100\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional broker scope"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Symbol filter"
+        },
+        {
+          "name": "start_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "end_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "100",
+          "notes": "1..500"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                        | Type           | Notes                                                                                                                                                     |\n| ---------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |\n| `funding_rate`               | string         | Per-8h cycle decimal                                                                                                                                      |\n| `funding_fee`                | string         | Signed: `> 0` → user pays, `< 0` → user receives                                                                                                          |\n| `position_qty`, `mark_price` | string         | Snapshot at the funding epoch                                                                                                                             |\n| `funding_rate_timestamp`     | int64          | Funding epoch (ms epoch UTC)                                                                                                                              |\n| `payment_type`               | string \\| null | `\"Pay\"` / `\"Receive\"` / `null` when `funding_fee == 0`                                                                                                    |\n| `funding_status`             | string         | `\"Settled\"` (≤ latest settled version) or `\"Accrued\"` (pending; often `funding_fee == 0`). Defaults to `\"Settled\"` if the settlement table is unavailable |\n| `margin_mode`                | string         | `\"CROSS\"` or `\"ISOLATED\"`                                                                                                                                 |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"symbol\": \"PERP_BTC_USDC\",\n        \"funding_rate\": \"0.0001\",\n        \"funding_fee\": \"10.50\",\n        \"position_qty\": \"0.5\",\n        \"mark_price\": \"45000.00\",\n        \"funding_rate_timestamp\": 1714900000000,\n        \"payment_type\": \"Pay\",\n        \"funding_status\": \"Settled\",\n        \"margin_mode\": \"CROSS\"\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Default behavior: no time filter — returns the entire history. Use `start_time` to bound the window."
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/account/funding-payments"
+    },
+    {
+      "type": "historicalOrders",
+      "title": "Historical orders",
+      "category": "account",
+      "slug": "historical-orders",
+      "description": "Order history filtered by closed status (FILLED / CANCELLED / REJECTED). Auto-queries live and archive tables across the 92-day cutover.",
+      "intro": "Order history filtered by closed status (`FILLED` / `CANCELLED` / `REJECTED`). Spans live and archive tables — windows that cross the 92-day archive cutoff are queried across both. Includes both ordinary and algo orders (algo rows include `trigger_price` / `trigger_status`).",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"historicalOrders\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"symbol\": \"PERP_ETH_USDC\",\n  \"status\": \"FILLED\",\n  \"start_time\": 1715000000000,\n  \"end_time\": 1715600000000,\n  \"limit\": 100\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Symbol filter"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "default": "all three",
+          "notes": "FILLED / CANCELLED (alias CANCELED) / REJECTED, case-insensitive"
+        },
+        {
+          "name": "start_time",
+          "type": "int64",
+          "required": false,
+          "default": "now (UTC day snap) − 24h",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "end_time",
+          "type": "int64",
+          "required": false,
+          "default": "now",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "100",
+          "notes": "1..500"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                             | Type           | Notes                                                                                                                                                                                                                                                                             |\n| --------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n| `type`                            | string         | Ordinary (`LIMIT`, `MARKET`, `IOC`, `POST_ONLY`, `FOK`, `LIQUIDATE`, `BID`, `ASK`, `SETTLEMENT`) or algo (`STOP_MARKET`, `STOP_LIMIT`, `TAKE_PROFIT_MARKET`, `TAKE_PROFIT_LIMIT`, `OCO`, `TRAILING_STOP`, `BRACKET`, `POSITIONAL_TP_SL`, `TP_SL`, `STOP_TRIGGER`, `STOP_BRACKET`) |\n| `status`                          | string         | `FILLED` / `CANCELLED` / `REJECTED`                                                                                                                                                                                                                                               |\n| `average_executed_price`          | string \\| null | `executed_amount / executed_quantity`; `null` if zero fills                                                                                                                                                                                                                       |\n| `trigger_price`, `trigger_status` | string \\| null | Algo rows only                                                                                                                                                                                                                                                                    |\n| `realized_pnl`                    | string \\| null | `null` on algo rows                                                                                                                                                                                                                                                               |\n| `reduce_only`                     | bool \\| null   | Algo rows only                                                                                                                                                                                                                                                                    |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"order_id\": \"123456789\",\n        \"symbol\": \"PERP_ETH_USDC\",\n        \"side\": \"BUY\",\n        \"type\": \"LIMIT\",\n        \"price\": \"2128.31\",\n        \"quantity\": \"164.45\",\n        \"total_executed_quantity\": \"164.45\",\n        \"average_executed_price\": \"2128.29\",\n        \"trigger_price\": null,\n        \"trigger_status\": null,\n        \"status\": \"FILLED\",\n        \"total_fee\": \"0.002\",\n        \"fee_asset\": \"USDC\",\n        \"realized_pnl\": \"100.50\",\n        \"reduce_only\": false,\n        \"created_time\": 1714900000000,\n        \"updated_time\": 1714901000000\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "**Status mapping:** `FILLED → [3]`, `CANCELLED → [5]`, `REJECTED → [6]`; omitting `status` queries all three",
+        "**Default window** is UTC-day-snapped `now − 24h` — pass an explicit `start_time` for longer lookbacks",
+        "**Archive cutoff** is 92 days. Queries spanning that boundary transparently combine live and archived orders",
+        "Sort: `(created_time DESC, order_id DESC)`"
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/account/historical-orders"
+    },
+    {
+      "type": "openOrders",
+      "title": "Open orders",
+      "category": "account",
+      "slug": "open-orders",
+      "description": "Open and partially-filled orders (ordinary + algo) for an address, sorted DESC by created time.",
+      "intro": "Open and partially-filled orders for an address. Combines top-level ordinary and algo orders into a single sorted stream.",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"openOrders\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"symbol\": \"PERP_ETH_USDC\",\n  \"limit\": 100\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Symbol filter"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "100",
+          "notes": "1..500"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field            | Type           | Notes                                                                                                     |\n| ---------------- | -------------- | --------------------------------------------------------------------------------------------------------- |\n| `order_id`       | string         | 64-bit integer encoded as string                                                                          |\n| `side`           | string         | `BUY` / `SELL` / `BOTH`                                                                                   |\n| `type`           | string         | See [`historicalOrders`](/build-on-omnichain/public-info-api/account/historical-orders) for the full enum |\n| `price`          | string \\| null | `null` for `MARKET` or trigger-without-price algo orders                                                  |\n| `trigger_price`  | string \\| null | Algo orders only                                                                                          |\n| `trigger_status` | string \\| null | `PENDING` / `TRIGGERED` / `FAILED`; `null` for ordinary orders or `USELESS` status                        |\n| `status`         | string         | Always `\"OPEN\"` for this endpoint                                                                         |\n| `reduce_only`    | bool \\| null   | Algo orders only                                                                                          |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"order_id\": \"123456789\",\n        \"symbol\": \"PERP_ETH_USDC\",\n        \"side\": \"BUY\",\n        \"type\": \"STOP_MARKET\",\n        \"price\": null,\n        \"quantity\": \"1.5\",\n        \"total_executed_quantity\": \"0.0\",\n        \"trigger_price\": \"2450.00\",\n        \"trigger_status\": \"PENDING\",\n        \"status\": \"OPEN\",\n        \"reduce_only\": false,\n        \"created_time\": 1715000000000,\n        \"updated_time\": 1715001000000\n      }\n    ],\n    \"next_cursor\": \"eyJsYXN0X3RzIjoxNzE1MDAwMDAwMDAwLCJsYXN0X2lkIjoxMjM0NTZ9\"\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Sort: `(created_time DESC, order_id DESC)`; cursor compares `(ts, id)` lexicographically"
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/account/open-orders"
+    },
+    {
+      "type": "orderStatus",
+      "title": "Order status",
+      "category": "account",
+      "slug": "order-status",
+      "description": "Single order lookup by order_id. Searches live and archive tables; cross-references algo metadata.",
+      "intro": "Single order lookup by `order_id`. Searches both live and archived orders, and populates algo-order fields (`trigger_price` etc.) when applicable.",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"orderStatus\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"order_id\": 123456789\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Required — narrows the lookup to one user; omitting it makes the query much slower"
+        },
+        {
+          "name": "order_id",
+          "type": "int64",
+          "required": true,
+          "default": "—",
+          "notes": "Order identifier; MISSING_PARAM if absent"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                    | Type           | Notes                                                                                                          |\n| ------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------- |\n| `status`                 | string         | `PENDING_NEW` / `NEW` / `PARTIAL_FILLED` / `FILLED` / `PENDING_CANCEL` / `CANCELLED` / `REJECTED` / `REPLACED` |\n| `average_executed_price` | string \\| null | Live: always `null`. Archive: decimal                                                                          |\n| `total_fee`, `fee_asset` | string \\| null | Live: `null`. Archive: decimal / string                                                                        |\n| `trigger_price`          | string \\| null | Present only for algo orders                                                                                   |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"order_id\": \"123456789\",\n    \"symbol\": \"PERP_ETH_USDC\",\n    \"side\": \"BUY\",\n    \"type\": \"LIMIT\",\n    \"price\": \"2500.00\",\n    \"quantity\": \"1.5\",\n    \"total_executed_quantity\": \"1.5\",\n    \"average_executed_price\": \"2499.50\",\n    \"trigger_price\": null,\n    \"status\": \"FILLED\",\n    \"total_fee\": \"0.002\",\n    \"fee_asset\": \"USDC\",\n    \"realized_pnl\": \"100.50\",\n    \"reduce_only\": false,\n    \"created_time\": 1714900000000,\n    \"updated_time\": 1714901000000\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Throws `ORDER_NOT_FOUND` (404) if the order is in neither live nor archive",
+        "This endpoint does not paginate (single row)"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/account/order-status"
+    },
+    {
+      "type": "portfolio",
+      "title": "Portfolio",
+      "category": "account",
+      "slug": "portfolio",
+      "description": "Daily account-value time series with cumulative PnL. UTC-day-aligned snapshots.",
+      "intro": "Daily snapshots of account value plus cumulative PnL, UTC-day-aligned.",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"portfolio\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"interval\": \"1d\",\n  \"start_time\": 1712000000000,\n  \"end_time\": 1715000000000,\n  \"limit\": 90\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "interval",
+          "type": "string",
+          "required": false,
+          "default": "\"1d\"",
+          "notes": "Only \"1d\" is supported — anything else throws INVALID_PARAM"
+        },
+        {
+          "name": "start_time",
+          "type": "int64",
+          "required": false,
+          "default": "end_time − 90d",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "end_time",
+          "type": "int64",
+          "required": false,
+          "default": "now",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "90",
+          "notes": "1..365"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field             | Type   | Notes                                                              |\n| ----------------- | ------ | ------------------------------------------------------------------ |\n| `rows[]`          | array  | DESC by `timestamp`                                                |\n| `.account_value`  | string | Daily collateral snapshot (`holding + frozen + upnl`)              |\n| `.cumulative_pnl` | string | Account value change since the earliest day in the returned window |\n| `.timestamp`      | int64  | UTC-day-aligned ms epoch                                           |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"account_value\": \"50000.5\",\n        \"cumulative_pnl\": \"2500\",\n        \"timestamp\": 1715000000000\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Throws `INVALID_PARAM` for `interval ≠ \"1d\"` or `limit ∉ [1, 365]`",
+        "For real-time collateral / unrealized PnL breakdown, use [`accountState`](/build-on-omnichain/public-info-api/account/account-state)."
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/account/portfolio"
+    },
+    {
+      "type": "positionContext",
+      "title": "Position context",
+      "category": "account",
+      "slug": "position-context",
+      "description": "Single-symbol view: position, open orders for that symbol, market snapshot, and account risk summary — in one parallelized call.",
+      "intro": "Composite single-symbol view. Combines the matching position (if any), open orders for that symbol, a market snapshot, and an account-risk summary. All sub-handlers run in parallel. Equivalent to `accountState` + `openOrders` (symbol-filtered) + `marketSummary`, but cheaper.",
+      "weight": 2,
+      "requestExample": "{\n  \"type\": \"positionContext\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"broker_id\": \"orderly\"\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Trading pair"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional — see \"Primary account\" below"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field             | Type           | Notes                                                          |\n| ----------------- | -------------- | -------------------------------------------------------------- |\n| `position`        | object \\| null | `null` if the account does not hold this symbol                |\n| `open_orders[]`   | array          | Already filtered to `symbol` — no client-side filtering needed |\n| `market`          | object \\| null | `null` if the symbol is absent from the latest summary         |\n| `account_summary` | object \\| null | `null` on `ADDRESS_NOT_FOUND`                                  |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"position\": {\n      /* same shape as accountState.positions[] item */\n    },\n    \"open_orders\": [\n      /* openOrders rows, already filtered by symbol */\n    ],\n    \"market\": {\n      \"mark_price\": \"70305.1\",\n      \"index_price\": \"70298.5\",\n      \"bid_price\": \"70304.8\",\n      \"ask_price\": \"70305.5\",\n      \"last_funding_rate\": \"-0.00005082\",\n      \"est_funding_rate\": \"-0.00009308\",\n      \"next_funding_time\": 1779278400000,\n      \"24h_volume\": \"523456789.50\",\n      \"open_interest\": \"156789012.30\"\n    },\n    \"account_summary\": {\n      \"free_collateral\": \"85000.00\",\n      \"margin_ratio\": \"0.15\"\n    }\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "**Primary account selection** (when `account_id` is omitted): the largest `account_value`, with `account_type == \"main\"` as the tiebreaker",
+        "Sub-handlers run in parallel"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/account/position-context"
+    },
+    {
+      "type": "trades",
+      "title": "Trades",
+      "category": "account",
+      "slug": "trades",
+      "description": "Trade fills (executed order fills) for an address. Combines a real-time window with an archive window so older history stays queryable.",
+      "intro": "Executed trade fills for an address. The handler transparently combines real-time fills (last 24 hours) with the archive (older than 24 hours); the cursor carries which source the next page is on, so pagination is continuous.",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"trades\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"symbol\": \"PERP_ETH_USDC\",\n  \"start_time\": 1714000000000,\n  \"end_time\": 1715000000000,\n  \"limit\": 200\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Symbol filter"
+        },
+        {
+          "name": "start_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "end_time",
+          "type": "int64",
+          "required": false,
+          "default": "now (when start_time set)",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "100",
+          "notes": "1..1000 (without time range) or 1..2000 (with time range)"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor (carries src)"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field          | Type           | Notes                                                                      |\n| -------------- | -------------- | -------------------------------------------------------------------------- |\n| `id`           | string         | Transaction ID                                                             |\n| `order_id`     | string \\| null | `null` on orphaned / liquidation fills                                     |\n| `is_maker`     | bool           | `true` = maker, `false` = taker                                            |\n| `realized_pnl` | string \\| null | `null` for fills older than 24 hours (archive does not retain this column) |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"id\": \"987654321\",\n        \"order_id\": \"123456789\",\n        \"symbol\": \"PERP_ETH_USDC\",\n        \"side\": \"BUY\",\n        \"executed_price\": \"2500.00\",\n        \"executed_quantity\": \"0.5\",\n        \"fee\": \"0.0005\",\n        \"fee_asset\": \"USDC\",\n        \"is_maker\": false,\n        \"realized_pnl\": \"10.50\",\n        \"executed_timestamp\": 1714900000000\n      }\n    ],\n    \"next_cursor\": \"eyJsYXN0X2lkIjo5ODc2NTQzMjEsInNyYyI6Im15c3FsIn0\"\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "**24-hour boundary:** real-time data covers `[max(start_time, now − 24h), end_time]`; archived data covers `[start_time, min(end_time, now − 24h − 1ms)]`",
+        "Treat the cursor as opaque — always pass it back as-is"
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/account/trades"
+    },
+    {
+      "type": "userDepositsWithdrawals",
+      "title": "Deposits and withdrawals",
+      "category": "account",
+      "slug": "user-deposits-withdrawals",
+      "description": "Deposit and withdrawal transaction history for an address, paginated DESC by transaction ID.",
+      "intro": "Deposit / withdraw transaction history for an address. Optional filters for direction, token, and time window.",
+      "weight": 5,
+      "requestExample": "{\n  \"type\": \"userDepositsWithdrawals\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"side\": \"deposit\",\n  \"token\": \"USDC\",\n  \"limit\": 100\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "side",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "\"deposit\" / \"withdraw\" (case-insensitive); anything else → INVALID_PARAM"
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Token filter (e.g. \"USDC\")"
+        },
+        {
+          "name": "start_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "end_time",
+          "type": "int64",
+          "required": false,
+          "default": "—",
+          "notes": "ms epoch"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "100",
+          "notes": "1..500"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field          | Type   | Notes                                           |\n| -------------- | ------ | ----------------------------------------------- |\n| `id`           | string | Auto-increment transaction ID encoded as string |\n| `side`         | string | `\"deposit\"` or `\"withdraw\"`                     |\n| `status`       | string | `SUCCESS` / `PENDING` / `FAILED` / …            |\n| `chain_id`     | string | EVM chain ID of the transaction                 |\n| `tx_id`        | string | On-chain transaction hash                       |\n| `created_time` | int64  | ms epoch                                        |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"id\": \"12345\",\n        \"token\": \"USDC\",\n        \"side\": \"deposit\",\n        \"amount\": \"1000.5\",\n        \"fee\": \"0.5\",\n        \"chain_id\": \"1\",\n        \"tx_id\": \"0xabc...\",\n        \"status\": \"SUCCESS\",\n        \"created_time\": 1715000000000\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/account/user-deposits-withdrawals"
+    },
+    {
+      "type": "whaleContext",
+      "title": "Whale context",
+      "category": "account",
+      "slug": "whale-context",
+      "description": "Whale research bundle: account state, open positions, and recent trades for an address in one call.",
+      "intro": "Whale research bundle. Combines the address's account state with its most recent trade fills. Useful when chasing addresses surfaced by [`topAddresses`](/build-on-omnichain/public-info-api/platform/top-addresses) or [`platformPositions`](/build-on-omnichain/public-info-api/platform/platform-positions).",
+      "weight": 3,
+      "requestExample": "{\n  \"type\": \"whaleContext\",\n  \"address\": \"0x1234567890abcdef1234567890abcdef12345678\",\n  \"recent_trades_limit\": 20\n}",
+      "requestParams": [
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "default": "—",
+          "notes": "Wallet address"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Optional"
+        },
+        {
+          "name": "recent_trades_limit",
+          "type": "int",
+          "required": false,
+          "default": "20",
+          "notes": "Clamped to [1, 50]"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field             | Type           | Notes                                                                                                                                |\n| ----------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |\n| `account`         | object \\| null | Subset of `accountState`; `null` on `ADDRESS_NOT_FOUND`                                                                              |\n| `positions[]`     | array          | Open positions (same shape as [`accountState`](/build-on-omnichain/public-info-api/account/account-state))                           |\n| `recent_trades[]` | array          | Most recent fills (same shape as [`trades`](/build-on-omnichain/public-info-api/account/trades)); empty array on sub-handler failure |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"account\": {\n      /* like agentContext.account */\n    },\n    \"positions\": [\n      /* like accountState.positions[] */\n    ],\n    \"recent_trades\": [\n      /* like trades.rows[] */\n    ]\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Sub-handlers run in parallel",
+        "Failures degrade gracefully — individual sections may be empty / `null` without failing the whole call"
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/account/whale-context"
+    },
+    {
+      "type": "platformPositions",
+      "title": "Platform positions",
+      "category": "platform",
+      "slug": "platform-positions",
+      "description": "Platform-wide open-position snapshot across all users. Powers liquidation heatmaps and cross-account risk views.",
+      "intro": "Platform-wide snapshot of every open position across every account. Each row includes the address, account, notional, leverage, margin mode, and estimated liquidation price — enough to construct liquidation heatmaps and cross-account risk views.",
+      "weight": 20,
+      "requestExample": "{\n  \"type\": \"platformPositions\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"min_notional\": \"10000\",\n  \"limit\": 500\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Symbol filter"
+        },
+        {
+          "name": "broker_id",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Broker filter"
+        },
+        {
+          "name": "min_notional",
+          "type": "decimal",
+          "required": false,
+          "default": "0",
+          "notes": "Minimum position notional to include"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "500",
+          "notes": "1..5000"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                                                                         | Type           | Notes                                                                 |\n| ----------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------- |\n| `total_long_notional`, `total_short_notional`, `total_positions`              | top-level      | Aggregates over the **filtered snapshot** (not just the current page) |\n| `est_liq_price`, `unrealized_pnl`, `unsettled_pnl`, `leverage`, `margin_mode` | mixed \\| null  | Per-row position-calc; `null` on position-calc failure                |\n| `opened_at`                                                                   | int64 \\| null  | ms epoch when the position was first opened                           |\n| `margin_mode`                                                                 | string \\| null | `\"CROSS\"` or `\"ISOLATED\"` — clients can filter as needed              |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"total_long_notional\": \"50000\",\n    \"total_short_notional\": \"45000\",\n    \"total_positions\": 1234,\n    \"rows\": [\n      {\n        \"address\": \"0x1234...\",\n        \"account_id\": \"0xabc...\",\n        \"broker_id\": \"orderly\",\n        \"symbol\": \"PERP_BTC_USDC\",\n        \"side\": \"LONG\",\n        \"position_qty\": \"10.5\",\n        \"notional\": \"420000\",\n        \"average_open_price\": \"40000\",\n        \"mark_price\": \"42000\",\n        \"est_liq_price\": \"38000\",\n        \"unrealized_pnl\": \"210\",\n        \"unsettled_pnl\": \"210\",\n        \"leverage\": 5,\n        \"margin_mode\": \"CROSS\",\n        \"opened_at\": 1716000000000\n      }\n    ],\n    \"next_cursor\": null\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "**5s cache**",
+        "Sort: position ID DESC",
+        "For building a liquidation heatmap, aggregate `est_liq_price` into price buckets client-side"
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/platform/platform-positions"
+    },
+    {
+      "type": "topAddresses",
+      "title": "Top addresses",
+      "category": "platform",
+      "slug": "top-addresses",
+      "description": "Leaderboard of addresses by notional / volume / PnL / trade count, with multi-window stats.",
+      "intro": "Leaderboard of addresses ranked by the chosen `sort_by` metric. Returns multi-window PnL, volume, and win-rate per address. Useful as the discovery step before drilling in with [`whaleContext`](/build-on-omnichain/public-info-api/account/whale-context) or [`accountState`](/build-on-omnichain/public-info-api/account/account-state).",
+      "weight": 10,
+      "requestExample": "{\n  \"type\": \"topAddresses\",\n  \"symbol\": \"PERP_BTC_USDC\",\n  \"sort_by\": \"pnl_7d\",\n  \"limit\": 50\n}",
+      "requestParams": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Empty / omitted → scan all symbols"
+        },
+        {
+          "name": "sort_by",
+          "type": "string",
+          "required": false,
+          "default": "\"notional\"",
+          "notes": "One of notional, volume_24h, volume_7d, volume_30d, pnl_24h, pnl_7d, pnl_30d, trade_count_24h"
+        },
+        {
+          "name": "min_notional",
+          "type": "decimal",
+          "required": false,
+          "default": "0",
+          "notes": "Minimum total notional to include"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "default": "50",
+          "notes": "1..200"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "default": "—",
+          "notes": "Opaque cursor"
+        }
+      ],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field                                                      | Type           | Notes                                                                                               |\n| ---------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------- |\n| `pnl_24h`, `volume_24h`, `trade_count_24h`, `win_rate_24h` | mixed          | Rolling 24h (`now − 24h .. now`)                                                                    |\n| `pnl_7d`, `pnl_30d`, `volume_7d`, `volume_30d`             | string         | Calendar windows: today's real-time stats plus the prior `N − 1` days of UTC-day-aligned history    |\n| `win_rate_7d`, `win_rate_30d`                              | double \\| null | `null` if the historical data source is unavailable                                                 |\n| `avg_trade_size`                                           | string \\| null | `volume_24h / trade_count_24h`; `null` when count is `0`                                            |\n| `last_updated_time`                                        | int64          | ms epoch when the cached snapshot was built; constant across all calls within the same cache window |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"rows\": [\n      {\n        \"address\": \"0x1234...\",\n        \"broker_id\": \"orderly\",\n        \"total_notional\": \"123.45\",\n        \"pnl_24h\": \"10.5\",\n        \"pnl_7d\": \"20.3\",\n        \"pnl_30d\": \"50.2\",\n        \"volume_24h\": \"1000\",\n        \"volume_7d\": \"2000\",\n        \"volume_30d\": \"5000\",\n        \"trade_count_24h\": 5,\n        \"win_rate_24h\": 0.6,\n        \"win_rate_7d\": 0.55,\n        \"win_rate_30d\": 0.58,\n        \"avg_trade_size\": \"200\",\n        \"position_count\": 3\n      }\n    ],\n    \"next_cursor\": null,\n    \"last_updated_time\": 1779269143700\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "**30-minute cache** keyed by `(symbol, sort_by, min_notional)`. Per-row PnL and win-rate enrichment for the top 200 users is computed **inside** the cache, so all callers within the window see identical results",
+        "Compute staleness via `now − last_updated_time` (≤ 30 min by construction)",
+        "If the historical data source is unavailable, the snapshot is still served — 7d / 30d win-rate fields fall back to `null`"
+      ],
+      "paginated": true,
+      "path": "build-on-omnichain/public-info-api/platform/top-addresses"
+    },
+    {
+      "type": "rateLimitStatus",
+      "title": "Rate limit status",
+      "category": "system",
+      "slug": "rate-limit-status",
+      "description": "Read your IP quota state for the rolling one-minute window. Weight 0 — safe to poll every loop iteration.",
+      "intro": "Read your IP quota state for the rolling one-minute window. Weight 0 — calling it does not consume any quota.",
+      "weight": 0,
+      "requestExample": "{ \"type\": \"rateLimitStatus\" }",
+      "requestParams": [],
+      "responseSections": [
+        {
+          "heading": "Response",
+          "markdown": "| Field       | Type   | Notes                                                                                                                                                            |\n| ----------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n| `limit`     | int64  | Total weight available per window (1200 for the default tier)                                                                                                    |\n| `remaining` | int64  | Weight still available in the **current** window, after all consumption so far. Weighted calls deduct from this value before the next `rateLimitStatus` reads it |\n| `reset`     | int64  | ms epoch when the current window ends. Windows roll forward continuously — `remaining` springs back up to `limit` after `reset`                                  |\n| `tier`      | string | Quota tier name; `\"default\"` for anonymous IPs                                                                                                                   |"
+        },
+        {
+          "heading": "Response",
+          "markdown": "| Type                      | Field                                     | Worst-case freshness                                             |\n| ------------------------- | ----------------------------------------- | ---------------------------------------------------------------- |\n| `orderbook`               | all                                       | < 1s                                                             |\n| `marketTrades`            | all                                       | < 1s                                                             |\n| `openOrders`              | all                                       | < 1s                                                             |\n| `orderStatus`             | all                                       | < 1s                                                             |\n| `rateLimitStatus`         | all                                       | real-time                                                        |\n| `marketSummary`           | all                                       | < 5s                                                             |\n| `marketDetail`            | `orderbook`                               | < 1s                                                             |\n| `marketDetail`            | `recent_trades` / `market_info`           | < 5s                                                             |\n| `marketDetail`            | `funding_history`                         | < 30s                                                            |\n| `marketDetail`            | `candles`                                 | ~1 min                                                           |\n| `accountState`            | all                                       | < 5s                                                             |\n| `platformPositions`       | all                                       | < 5s                                                             |\n| `liquidations`            | all                                       | < 5s                                                             |\n| `agentContext`            | account + positions + held markets        | < 5s                                                             |\n| `positionContext`         | position + orders + market                | < 5s                                                             |\n| `fundingComparison`       | all                                       | ~1 min                                                           |\n| `fundingRateHistory`      | all                                       | < 30s                                                            |\n| `feeRate`                 | all                                       | ~1 min                                                           |\n| `accounts`                | all                                       | ~1 min                                                           |\n| `candles` (latest)        | all                                       | ~1 min                                                           |\n| `candles` (closed)        | all                                       | unchanged                                                        |\n| `trades` (last 24h)       | all                                       | < 1s                                                             |\n| `trades` (> 24h)          | all                                       | ~1h                                                              |\n| `fundingPayments`         | all                                       | < 1s                                                             |\n| `userDepositsWithdrawals` | all                                       | < 1s                                                             |\n| `historicalOrders`        | all                                       | < 1s                                                             |\n| `topAddresses`            | all                                       | ~30 min (use `last_updated_time` for the actual snapshot age)    |\n| `portfolio`               | all                                       | ~1 day (daily snapshot; use `accountState` for real-time values) |\n| `whaleContext`            | `account` / `positions` / `recent_trades` | < 5s                                                             |"
+        }
+      ],
+      "responseExamples": [
+        {
+          "label": "Response",
+          "code": "{\n  \"success\": true,\n  \"data\": {\n    \"limit\": 1200,\n    \"remaining\": 500,\n    \"reset\": 1779269200000,\n    \"tier\": \"default\"\n  },\n  \"ts\": 1779269143700\n}"
+        }
+      ],
+      "notes": [
+        "Weight 0 — never consumes quota.",
+        "Safe to poll on every loop iteration."
+      ],
+      "paginated": false,
+      "path": "build-on-omnichain/public-info-api/overview"
+    }
+  ],
+  "overview": {
+    "responseEnvelope": "{\n  \"success\": true,\n  \"data\": {\n    /* type-specific payload */\n  },\n  \"ts\": 1779269143700\n}",
+    "errorCodes": [
+      {
+        "code": "UNKNOWN_TYPE",
+        "http": 400,
+        "meaning": "type field missing or not a registered handler"
+      },
+      {
+        "code": "MISSING_PARAM",
+        "http": 400,
+        "meaning": "Required parameter missing"
+      },
+      {
+        "code": "INVALID_PARAM",
+        "http": 400,
+        "meaning": "Parameter present but wrong type, range, or format"
+      },
+      {
+        "code": "ADDRESS_NOT_FOUND",
+        "http": 404,
+        "meaning": "address (optionally with broker_id / account_id) resolves to zero accounts"
+      },
+      {
+        "code": "ORDER_NOT_FOUND",
+        "http": 404,
+        "meaning": "orderStatus: order_id not in live or archive tables"
+      },
+      {
+        "code": "RATE_LIMIT_EXCEEDED",
+        "http": 429,
+        "meaning": "Caller exhausted IP quota — see [rate limits](#rate-limits)"
+      },
+      {
+        "code": "INTERNAL_ERROR",
+        "http": 500,
+        "meaning": "Unhandled exception"
+      },
+      {
+        "code": "SERVICE_UNAVAILABLE",
+        "http": 503,
+        "meaning": "A downstream service timed out — usually transient, safe to retry"
+      },
+      {
+        "code": "POSITION_CALC_TIMEOUT",
+        "http": 503,
+        "meaning": "Position-calc service specifically timed out"
+      }
+    ],
+    "addressResolution": [
+      {
+        "input": "address only",
+        "scope": "All accounts (REGULAR + SUB) under the address"
+      },
+      {
+        "input": "address + broker_id",
+        "scope": "All accounts within that broker"
+      },
+      {
+        "input": "address + account_id",
+        "scope": "One specific account (typically returns a flat object)"
+      },
+      {
+        "input": "address + broker_id + account_id",
+        "scope": "One account scoped to a broker"
+      }
+    ],
+    "pagination": {
+      "description": "",
+      "cursorShapes": [
+        {
+          "endpoints": "candles, fundingRateHistory",
+          "shape": "{ \"last_ts\": <ms> }"
+        },
+        {
+          "endpoints": "openOrders, historicalOrders",
+          "shape": "{ \"last_ts\": <ms>, \"last_id\": <order_id> }"
+        },
+        {
+          "endpoints": "trades",
+          "shape": "{ \"last_id\": <txn_id>, \"src\": <string> }"
+        },
+        {
+          "endpoints": "fundingPayments",
+          "shape": "{ \"last_id\": <funding_detail_id> }"
+        },
+        {
+          "endpoints": "liquidations",
+          "shape": "{ \"last_id\": <record_id> }"
+        },
+        {
+          "endpoints": "userDepositsWithdrawals",
+          "shape": "{ \"last_id\": <transaction_id> }"
+        },
+        {
+          "endpoints": "portfolio",
+          "shape": "{ \"last_date\": <ms> }"
+        },
+        {
+          "endpoints": "topAddresses",
+          "shape": "{ \"last_value\": \"<decimal>\" }"
+        },
+        {
+          "endpoints": "platformPositions",
+          "shape": "{ \"last_id\": <position_id> }"
+        }
+      ]
+    },
+    "rateLimits": {
+      "weightPerMinute": 1200,
+      "weightByType": [
+        {
+          "weight": 0,
+          "types": [
+            "rateLimitStatus"
+          ]
+        },
+        {
+          "weight": 1,
+          "types": [
+            "feeRate",
+            "marketSummary",
+            "marketTrades",
+            "orderbook"
+          ]
+        },
+        {
+          "weight": 2,
+          "types": [
+            "agentContext",
+            "candles",
+            "fundingComparison",
+            "fundingRateHistory",
+            "liquidations",
+            "marketDetail",
+            "positionContext"
+          ]
+        },
+        {
+          "weight": 3,
+          "types": [
+            "whaleContext"
+          ]
+        },
+        {
+          "weight": 5,
+          "types": [
+            "accounts",
+            "accountState",
+            "fundingPayments",
+            "historicalOrders",
+            "openOrders",
+            "orderStatus",
+            "portfolio",
+            "trades",
+            "userDepositsWithdrawals"
+          ]
+        },
+        {
+          "weight": 10,
+          "types": [
+            "topAddresses"
+          ]
+        },
+        {
+          "weight": 20,
+          "types": [
+            "platformPositions"
+          ]
+        }
+      ],
+      "responseHeaders": "X-RateLimit-Limit: 1200\nX-RateLimit-Remaining: 1148\nX-RateLimit-Reset: 1779269200000\nX-RateLimit-Weight: 2",
+      "overQuotaExample": "{\n  \"success\": false,\n  \"code\": \"RATE_LIMIT_EXCEEDED\",\n  \"message\": \"Rate limit exceeded. Retry after 1779269200000\",\n  \"retry_after\": 1779269200000,\n  \"ts\": 1779269143700\n}"
+    },
+    "freshness": [
+      {
+        "type": "orderbook",
+        "field": "all",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "marketTrades",
+        "field": "all",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "openOrders",
+        "field": "all",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "orderStatus",
+        "field": "all",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "rateLimitStatus",
+        "field": "all",
+        "freshness": "real-time"
+      },
+      {
+        "type": "marketSummary",
+        "field": "all",
+        "freshness": "< 5s"
+      },
+      {
+        "type": "marketDetail",
+        "field": "orderbook",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "marketDetail",
+        "field": "recent_trades / market_info",
+        "freshness": "< 5s"
+      },
+      {
+        "type": "marketDetail",
+        "field": "funding_history",
+        "freshness": "< 30s"
+      },
+      {
+        "type": "marketDetail",
+        "field": "candles",
+        "freshness": "~1 min"
+      },
+      {
+        "type": "accountState",
+        "field": "all",
+        "freshness": "< 5s"
+      },
+      {
+        "type": "platformPositions",
+        "field": "all",
+        "freshness": "< 5s"
+      },
+      {
+        "type": "liquidations",
+        "field": "all",
+        "freshness": "< 5s"
+      },
+      {
+        "type": "agentContext",
+        "field": "account + positions + held markets",
+        "freshness": "< 5s"
+      },
+      {
+        "type": "positionContext",
+        "field": "position + orders + market",
+        "freshness": "< 5s"
+      },
+      {
+        "type": "fundingComparison",
+        "field": "all",
+        "freshness": "~1 min"
+      },
+      {
+        "type": "fundingRateHistory",
+        "field": "all",
+        "freshness": "< 30s"
+      },
+      {
+        "type": "feeRate",
+        "field": "all",
+        "freshness": "~1 min"
+      },
+      {
+        "type": "accounts",
+        "field": "all",
+        "freshness": "~1 min"
+      },
+      {
+        "type": "candles (latest)",
+        "field": "all",
+        "freshness": "~1 min"
+      },
+      {
+        "type": "candles (closed)",
+        "field": "all",
+        "freshness": "unchanged"
+      },
+      {
+        "type": "trades (last 24h)",
+        "field": "all",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "trades (> 24h)",
+        "field": "all",
+        "freshness": "~1h"
+      },
+      {
+        "type": "fundingPayments",
+        "field": "all",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "userDepositsWithdrawals",
+        "field": "all",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "historicalOrders",
+        "field": "all",
+        "freshness": "< 1s"
+      },
+      {
+        "type": "topAddresses",
+        "field": "all",
+        "freshness": "~30 min (use last_updated_time for the actual snapshot age)"
+      },
+      {
+        "type": "portfolio",
+        "field": "all",
+        "freshness": "~1 day (daily snapshot; use accountState for real-time values)"
+      },
+      {
+        "type": "whaleContext",
+        "field": "account / positions / recent_trades",
+        "freshness": "< 5s"
+      }
+    ]
+  },
+  "metadata": {
+    "generatedAt": "2026-06-26T12:45:19.662Z",
+    "source": "/home/mario/projects/orderly/documentation/build-on-omnichain/public-info-api",
+    "mode": "mdx-parsing",
+    "totalQueryTypes": 24,
+    "totalCategories": 4
+  }
+}

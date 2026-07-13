@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Generated data files (output of scripts/generate_*.js)
+src/data/**/*.json
+
+# Auto-generated analysis artifacts (from scripts/analyze_*.js)
+docs_analysis.json
+tg_analysis.json
+example_dex_analysis.json
+repo_analysis.json
+result.json
+llms-full.txt
+telegram_chat_exports/
+
+# Test output
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

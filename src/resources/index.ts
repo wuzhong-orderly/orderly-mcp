@@ -771,6 +771,102 @@ export async function getResource(uri: string) {
         };
       }
 
+      case 'orderly://api/public-info': {
+        const publicInfoApi = JSON.parse(
+          fs.readFileSync(path.join(dataDir, 'public-info-api.json'), 'utf-8')
+        );
+
+        if (!searchQuery) {
+          let text = '# Public Info API Reference\n\n';
+          text += `${publicInfoApi.description}\n\n`;
+          text += `**Endpoint:** ${publicInfoApi.endpoint.method} ${publicInfoApi.endpoint.url}\n`;
+          text += `**Auth:** none\n\n`;
+          text += '## Categories\n\n';
+
+          for (const category of publicInfoApi.categories) {
+            text += `### ${category.title} (\`${category.name}\`) — ${category.queryTypes.length} types\n\n`;
+            for (const typeName of category.queryTypes) {
+              const qt = publicInfoApi.queryTypes.find(
+                (q: { type: string; description: string; weight?: number | null }) =>
+                  q.type === typeName
+              );
+              if (qt) {
+                text += `- \`${qt.type}\` (weight ${qt.weight ?? '?'}) — ${qt.description}\n`;
+              }
+            }
+            text += '\n';
+          }
+
+          text += '## How to Search\n\n';
+          text += 'To search for specific query types, add a `?search=` query parameter:\n\n';
+          text += '```\n';
+          text += 'orderly://api/public-info?search=accountState\n';
+          text += 'orderly://api/public-info?search=orderbook\n';
+          text += 'orderly://api/public-info?search=whale\n';
+          text += '```\n\n';
+          text += '**Search supports:**\n';
+          text += '- Query type names (e.g., `marketSummary`, `accountState`)\n';
+          text += '- Titles (e.g., `Market summary`)\n';
+          text += '- Descriptions and notes\n\n';
+          text += '**Pagination:**\n';
+          text += '- Use `?page=2` to see more results\n';
+          text += '- Use `?limit=5` to change results per page (max 10)';
+
+          return {
+            contents: [
+              {
+                uri,
+                mimeType: 'text/markdown',
+                text,
+              },
+            ],
+          };
+        }
+
+        const allTypes: Array<{
+          id: string;
+          name: string;
+          description: string;
+          category: string;
+          weight: number | null;
+        }> = [];
+
+        for (const qt of publicInfoApi.queryTypes) {
+          allTypes.push({
+            id: qt.type,
+            name: qt.title,
+            description: qt.description,
+            category: qt.category,
+            weight: qt.weight,
+          });
+        }
+
+        const fuse = createFuseSearch(allTypes, [
+          { name: 'id', weight: 0.4 },
+          { name: 'name', weight: 0.3 },
+          { name: 'description', weight: 0.3 },
+        ]);
+
+        const result = searchWithPagination(fuse, { query: searchQuery, page, limit });
+
+        const text = formatSearchResults(result, 'Public Info API Query Types', (item) => {
+          let itemText = `## ${item.id}\n\n`;
+          itemText += `**${item.name}** · category: ${item.category} · weight: ${item.weight ?? '?'}\n\n`;
+          itemText += `${item.description}\n\n---\n`;
+          return itemText;
+        });
+
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'text/markdown',
+              text,
+            },
+          ],
+        };
+      }
+
       default:
         return {
           contents: [

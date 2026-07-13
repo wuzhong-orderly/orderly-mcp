@@ -34,7 +34,10 @@ app.get('/health', (req, res) => {
 });
 
 // Session management - map to store transports by session ID
-const transports = new Map<string, { transport: StreamableHTTPServerTransport; createdAt: number }>();
+const transports = new Map<
+  string,
+  { transport: StreamableHTTPServerTransport; createdAt: number }
+>();
 
 const evictExpiredSessions = () => {
   const now = Date.now();
@@ -65,7 +68,10 @@ const evictOldestSession = () => {
   if (oldestId) {
     console.log(`Evicting oldest session to make room: ${oldestId}`);
     try {
-      void transports.get(oldestId)!.transport.close().catch(() => {});
+      void transports
+        .get(oldestId)!
+        .transport.close()
+        .catch(() => {});
     } catch {
       // transport may already be closed
     }

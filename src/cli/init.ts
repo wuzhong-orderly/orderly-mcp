@@ -21,7 +21,6 @@ const mcpInitOptionsSchema = z.object({
   cwd: z.string(),
 });
 
-/* eslint-disable no-console */
 function logger(message: string): void {
   console.log(message);
 }
@@ -41,7 +40,6 @@ function logError(message: string): void {
 function logBreak(): void {
   console.log();
 }
-/* eslint-enable no-console */
 
 async function getPackageManager(cwd: string): Promise<'npm' | 'yarn' | 'pnpm' | 'bun'> {
   const files = await fs.readdir(cwd).catch(() => []);

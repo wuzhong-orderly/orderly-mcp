@@ -14,6 +14,7 @@ import { getIndexerApiInfo } from './tools/indexerApi.js';
 import { getComponentGuide } from './tools/componentGuides.js';
 import { getOrderlyOneApiInfo } from './tools/orderlyOneApi.js';
 import { getSvApiInfo } from './tools/svApi.js';
+import { getPublicInfoApiInfo } from './tools/publicInfoApi.js';
 import { getResource } from './resources/index.js';
 
 // Common result type for all tools
@@ -222,6 +223,26 @@ export function createMcpServer(): Server {
             },
           },
         },
+        {
+          name: 'get_public_info_api_info',
+          description:
+            'Get information about the Orderly Public Info API — a zero-auth single endpoint (POST /v1/public/query) for market, account, and platform data via a `type` field. Covers 24 query types (marketSummary, accountState, orderbook, candles, topAddresses, etc.)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              queryType: {
+                type: 'string',
+                description:
+                  'Query type name (e.g., "marketSummary", "accountState", "orderbook", "candles", "topAddresses", "whaleContext"). Returns full details: params, response fields, example, weight, freshness.',
+              },
+              category: {
+                type: 'string',
+                description:
+                  'Browse a category instead: "market", "account", "platform", or "system". Use instead of queryType to list all types in a category.',
+              },
+            },
+          },
+        },
       ],
     };
   });
@@ -306,6 +327,13 @@ export function createMcpServer(): Server {
           )) as ToolResult;
           break;
 
+        case 'get_public_info_api_info':
+          result = (await getPublicInfoApiInfo(
+            args.queryType as string | undefined,
+            args.category as string | undefined
+          )) as ToolResult;
+          break;
+
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
@@ -375,6 +403,13 @@ export function createMcpServer(): Server {
           name: 'Indexer API Reference',
           description:
             'Indexer API for trading metrics, account events, volume statistics, and rankings',
+          mimeType: 'text/markdown',
+        },
+        {
+          uri: 'orderly://api/public-info',
+          name: 'Public Info API Reference',
+          description:
+            'Zero-auth single-endpoint query API (POST /v1/public/query) for market, account, and platform data via a `type` field',
           mimeType: 'text/markdown',
         },
       ],
