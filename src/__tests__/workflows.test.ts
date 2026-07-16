@@ -1,0 +1,59 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { explainWorkflow, clearWorkflowCache } from '../tools/workflows.js';
+
+describe('explainWorkflow', () => {
+  beforeEach(() => {
+    clearWorkflowCache();
+  });
+
+  it('should find workflow by kebab-case query', async () => {
+    // "wallet-connection" → tokens: wallet, connection
+    const result = await explainWorkflow('wallet-connection');
+    const text = result.content[0].text;
+    expect(text).not.toContain('not found');
+    // Should match a wallet-related workflow
+    expect(text.toLowerCase()).toContain('wallet');
+  });
+
+  it('should find workflow by natural language query', async () => {
+    const result = await explainWorkflow('how to set up react sdk');
+    const text = result.content[0].text;
+    expect(text).not.toContain('not found');
+  });
+
+  it('should find workflow by deposit query', async () => {
+    const result = await explainWorkflow('deposit-withdraw');
+    const text = result.content[0].text;
+    expect(text).not.toContain('not found');
+  });
+
+  it('should find workflow by single keyword', async () => {
+    const result = await explainWorkflow('websocket');
+    const text = result.content[0].text;
+    expect(text).not.toContain('not found');
+    expect(text.toLowerCase()).toContain('websocket');
+  });
+
+  it('should find workflow by exact full name', async () => {
+    const result = await explainWorkflow('Setting Up the Orderly React SDK with Wallet Connection');
+    const text = result.content[0].text;
+    expect(text).not.toContain('not found');
+    expect(text).toContain('Setting Up the Orderly React SDK with Wallet Connection');
+  });
+
+  it('should return available list for truly unmatched queries', async () => {
+    const result = await explainWorkflow('zzzqqqxxx12345nonexistent');
+    expect(result.content[0].text).toContain('not found');
+    expect(result.content[0].text).toContain('Available workflows');
+  });
+
+  it('should handle empty query', async () => {
+    const result = await explainWorkflow('');
+    expect(result.content[0].text).toBe('Please provide a workflow name to search for.');
+  });
+
+  it('should reject queries with only stopwords', async () => {
+    const result = await explainWorkflow('the and of');
+    expect(result.content[0].text).toContain('contained only common words');
+  });
+});

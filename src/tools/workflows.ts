@@ -9,7 +9,12 @@ interface WorkflowStep {
   title: string;
   description: string;
   code?: string;
-  important?: string[];
+  important?: string | string[];
+}
+
+interface CommonIssue {
+  issue: string;
+  solution: string;
 }
 
 interface Workflow {
@@ -17,8 +22,36 @@ interface Workflow {
   description: string;
   prerequisites?: string[];
   steps: WorkflowStep[];
-  commonIssues?: string[];
+  commonIssues?: string[] | CommonIssue[];
   relatedWorkflows?: string[];
+}
+
+// Words stripped from workflow queries so "wallet-connection" doesn't
+// waste a token on a generic word.
+const STOPWORDS = new Set([
+  'the',
+  'a',
+  'an',
+  'for',
+  'and',
+  'or',
+  'with',
+  'of',
+  'to',
+  'in',
+  'on',
+  'how',
+  'your',
+  'via',
+  'using',
+]);
+
+function tokenizeQuery(query: string): string[] {
+  return query
+    .toLowerCase()
+    .replace(/[-_]+/g, ' ')
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
 }
 
 // Initialize Fuse instance lazily
@@ -34,11 +67,13 @@ function getFuseInstance(): Fuse<Workflow> {
         { name: 'description', weight: 0.35 },
         { name: 'steps.title', weight: 0.15 },
       ],
-      threshold: 0.4,
-      distance: 100,
+      threshold: 0.5,
+      distance: 200,
       includeScore: true,
       minMatchCharLength: 2,
       shouldSort: true,
+      ignoreLocation: true,
+      findAllMatches: true,
     };
 
     fuseInstance = new Fuse(workflows, fuseOptions);
@@ -47,10 +82,54 @@ function getFuseInstance(): Fuse<Workflow> {
   return fuseInstance;
 }
 
-export async function explainWorkflow(workflow: string): Promise<WorkflowResult> {
-  const normalizedWorkflow = workflow.toLowerCase().trim();
+interface MergedResult {
+  workflow: Workflow;
+  score: number;
+  hits: number;
+}
 
-  if (!normalizedWorkflow) {
+/**
+ * Multi-token search: run Fuse for each token individually, then merge.
+ * Workflows matching multiple tokens get a score boost (lower = better).
+ */
+function multiTokenSearch(fuse: Fuse<Workflow>, tokens: string[], limit: number): MergedResult[] {
+  const resultMap = new Map<string, { workflow: Workflow; scores: number[]; hits: number }>();
+
+  for (const token of tokens) {
+    const results = fuse.search(token, { limit: limit * 6 });
+    for (const result of results) {
+      const score = result.score ?? 1;
+      const existing = resultMap.get(result.item.name);
+      if (existing) {
+        existing.scores.push(score);
+        existing.hits++;
+      } else {
+        resultMap.set(result.item.name, {
+          workflow: result.item,
+          scores: [score],
+          hits: 1,
+        });
+      }
+    }
+  }
+
+  return [...resultMap.values()]
+    .map((entry) => {
+      const avgScore = entry.scores.reduce((a, b) => a + b, 0) / entry.scores.length;
+      // Divide by hit count so workflows matching more query tokens rank higher
+      const boostedScore = avgScore / entry.hits;
+      return { workflow: entry.workflow, score: boostedScore, hits: entry.hits };
+    })
+    .sort((a, b) => {
+      // Prioritize coverage (more token hits = more relevant), then score
+      if (b.hits !== a.hits) return b.hits - a.hits;
+      return a.score - b.score;
+    })
+    .slice(0, limit);
+}
+
+export async function explainWorkflow(workflow: string): Promise<WorkflowResult> {
+  if (!workflow.trim()) {
     return {
       content: [
         {
@@ -61,11 +140,26 @@ export async function explainWorkflow(workflow: string): Promise<WorkflowResult>
     };
   }
 
-  const fuse = getFuseInstance();
-  const searchResults = fuse.search(normalizedWorkflow, { limit: 5 });
+  const tokens = tokenizeQuery(workflow);
 
-  // Filter out poor matches
-  const qualityResults = searchResults.filter((result) => (result.score ?? 1) < 0.6);
+  if (tokens.length === 0) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Your query "${workflow}" contained only common words. Please try a more specific term like "wallet", "deposit", or "fees".`,
+        },
+      ],
+    };
+  }
+
+  const fuse = getFuseInstance();
+  const mergedResults = multiTokenSearch(fuse, tokens, 5);
+
+  // Quality cutoff: 0.5 multi-token avg is a good match; 0.75 is the ceiling
+  const qualityResults = mergedResults.filter(
+    (r) => r.score < 0.5 || (r.hits >= 2 && r.score < 0.75)
+  );
 
   if (qualityResults.length === 0) {
     const workflows = (workflowsData as { workflows: Workflow[] }).workflows;
@@ -80,14 +174,18 @@ export async function explainWorkflow(workflow: string): Promise<WorkflowResult>
     };
   }
 
-  // Check for exact match
-  const exactMatch = qualityResults.find(
-    (r) =>
-      r.item.name.toLowerCase().replace(/[-_]/g, '') === normalizedWorkflow.replace(/[-_]/g, '')
-  );
+  // Check for exact/substring match on the name (highest priority).
+  // Compare the raw lowercased input (with kebab→space) so stopwords like
+  // "the"/"with" in the workflow name don't break the match.
+  const rawNormalized = workflow.toLowerCase().trim().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
+  const exactMatch = qualityResults.find((r) => r.workflow.name.toLowerCase() === rawNormalized);
+  // Also check if all query tokens appear in the workflow name
+  const tokenMatch = qualityResults.find((r) => {
+    const nameLower = r.workflow.name.toLowerCase();
+    return tokens.every((t) => nameLower.includes(t));
+  });
 
-  // Return exact match or best match
-  const match = exactMatch?.item || qualityResults[0].item;
+  const match = exactMatch?.workflow || tokenMatch?.workflow || qualityResults[0].workflow;
 
   let text = `# ${match.name}\n\n${match.description}\n\n`;
 
@@ -105,13 +203,20 @@ export async function explainWorkflow(workflow: string): Promise<WorkflowResult>
       text += `\`\`\`typescript\n${step.code}\n\`\`\`\n\n`;
     }
 
-    if (step.important && step.important.length > 0) {
-      text += `> **Important:** ${step.important.join(' ')}\n\n`;
+    if (step.important) {
+      const imp = Array.isArray(step.important) ? step.important : [step.important];
+      if (imp.length > 0) {
+        text += `> **Important:** ${imp.join(' ')}\n\n`;
+      }
     }
   });
 
   if (match.commonIssues && match.commonIssues.length > 0) {
-    text += `## Common Issues\n\n${match.commonIssues.map((i) => `- ${i}`).join('\n')}\n\n`;
+    const issues = match.commonIssues.map((i) => {
+      if (typeof i === 'string') return `- ${i}`;
+      return `- **${i.issue}** ${i.solution}`;
+    });
+    text += `## Common Issues\n\n${issues.join('\n')}\n\n`;
   }
 
   if (match.relatedWorkflows && match.relatedWorkflows.length > 0) {

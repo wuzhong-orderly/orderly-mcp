@@ -44,8 +44,9 @@ temp/
 Thumbs.db
 
 result.json
-telegram_chat_exports
-llms-full.txt
+telegram_chats_filtered
+.temp-docs
+.temp-sdk
 repo_analysis.json
 docs_analysis.json
 tg_analysis.json

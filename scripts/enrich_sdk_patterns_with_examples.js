@@ -6,9 +6,19 @@
  * This script merges the example-dex analysis into the SDK patterns data,
  * adding real-world code examples for charts, components, and DEX patterns.
  *
+ * INCREMENTAL MODE (default):
+ *   Reads existing sdk-patterns.json's _enrichedFingerprints map and skips
+ *   items whose source content hasn't changed. Only new/changed items are
+ *   sent to the AI. Checkpoint after every item (crash-safe).
+ *
+ * FORCE MODE:
+ *   FORCE=true node scripts/enrich_sdk_patterns_with_examples.js
+ *   Re-processes every item from scratch (pays for full regeneration).
+ *
  * Usage:
  *   node scripts/enrich_sdk_patterns_with_examples.js
  *   USE_AI=true node scripts/enrich_sdk_patterns_with_examples.js  # AI-enhanced mode
+ *   FORCE=true USE_AI=true node scripts/enrich_sdk_patterns_with_examples.js
  *
  * Prerequisites:
  *   - example_dex_analysis.json from analyze_example_dex.js
@@ -21,6 +31,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
@@ -34,6 +45,7 @@ const EXAMPLE_DEX_ANALYSIS = path.join(projectRoot, 'example_dex_analysis.json')
 const SDK_PATTERNS_FILE = path.join(projectRoot, 'src/data/sdk-patterns.json');
 
 const USE_AI = process.env.USE_AI === 'true';
+const FORCE = process.env.FORCE === 'true';
 
 console.log('🚀 Enriching SDK patterns with example-dex code...\n');
 
@@ -71,8 +83,10 @@ if (USE_AI) {
   openai = new OpenAI({
     baseURL: 'https://cloud-api.near.ai/v1',
     apiKey: process.env.NEAR_AI_API_KEY || process.env.OPENAI_API_KEY,
+    timeout: parseInt(process.env.NEAR_AI_TIMEOUT_MS || String(30 * 60 * 1000), 10),
+    maxRetries: 0,
   });
-  NEAR_AI_MODEL = 'zai-org/GLM-4.7';
+  NEAR_AI_MODEL = 'qwen/qwen3.7-max';
 }
 
 // Read input data
@@ -80,7 +94,8 @@ console.log('📖 Reading analysis files...');
 const exampleDexData = JSON.parse(fs.readFileSync(EXAMPLE_DEX_ANALYSIS, 'utf-8'));
 const sdkPatterns = JSON.parse(fs.readFileSync(SDK_PATTERNS_FILE, 'utf-8'));
 console.log(`   Example DEX patterns: ${exampleDexData.patterns.length}`);
-console.log(`   Current SDK categories: ${sdkPatterns.categories.length}\n`);
+console.log(`   Current SDK categories: ${sdkPatterns.categories.length}`);
+console.log(`   Mode: ${FORCE ? 'FORCE (full regen)' : 'INCREMENTAL (cache-aware)'}\n`);
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -96,8 +111,168 @@ function findOrCreateCategory(categories, name) {
   return category;
 }
 
+// ---------------------------------------------------------------------------
+// Caching helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * md5 fingerprint of an example-dex item's source fields (the fields that
+ * determine what the AI sees). 12 hex chars.
+ */
+function computeItemFingerprint(item) {
+  const sourceData = {
+    name: item.name || item.filename,
+    description: item.description || '',
+    content: (item.content || '').substring(0, 2000),
+    keyCode: item.keyCode ? item.keyCode.substring(0, 1000) : '',
+    category: item.category || '',
+    files: item.files || [],
+    dependencies: item.dependencies || [],
+    steps: item.steps || [],
+    keyFeatures: item.keyFeatures || [],
+    resolutions: item.resolutions || [],
+  };
+  return crypto.createHash('md5').update(JSON.stringify(sourceData)).digest('hex').substring(0, 12);
+}
+
+/**
+ * Look up an existing pattern by name within a category (case-insensitive).
+ */
+function findExistingPattern(categoryName, name) {
+  const category = sdkPatterns.categories.find((c) => c.name === categoryName);
+  if (!category) return null;
+  return (
+    category.patterns.find((p) => p.name.toLowerCase() === name.toLowerCase()) ||
+    category.patterns.find((p) => p.name.toLowerCase() === name.toLowerCase().replace(/\s+/g, '')) ||
+    null
+  );
+}
+
+/**
+ * Insert-or-update by pattern name. Returns 'added' or 'updated'.
+ */
+function upsertPattern(categoryName, pattern) {
+  const category = findOrCreateCategory(sdkPatterns.categories, categoryName);
+  const idx = category.patterns.findIndex(
+    (p) => p.name.toLowerCase() === pattern.name.toLowerCase()
+  );
+  if (idx >= 0) {
+    category.patterns[idx] = pattern;
+    return 'updated';
+  }
+  category.patterns.push(pattern);
+  return 'added';
+}
+
+function atomicWriteJson(filePath, data) {
+  const tmp = `${filePath}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, filePath);
+}
+
+// Load existing fingerprints (empty if FORCE'd away)
+const fingerprints = FORCE ? {} : sdkPatterns._enrichedFingerprints || {};
+if (Object.keys(fingerprints).length > 0) {
+  console.log(`📦 Loaded ${Object.keys(fingerprints).length} cached item fingerprints.\n`);
+}
+
+// Stats accumulators
+const stats = {
+  processed: 0,
+  cached: 0,
+  failed: 0,
+  addedCount: 0,
+  errorCount: 0,
+  processedFiles: [],
+};
+
+/**
+ * Unified per-item processor with cache-aware skipping + refinement context.
+ *
+ * @param items         - array of example-dex items to process
+ * @param categoryName  - SDK pattern category to upsert into
+ * @param aiProcessor   - (item, existingPattern) => Promise<pattern|null>
+ * @param basicCreator  - (item) => pattern  (used when USE_AI is false)
+ * @param itemName      - (item) => string used for cache key + name lookup
+ * @param rateLimitDelay - ms to wait after each AI call
+ */
+async function processItems(items, categoryName, opts) {
+  const { aiProcessor, basicCreator, itemName, rateLimitDelay = 500 } = opts;
+
+  if (items.length === 0) {
+    console.log('   (no items)');
+    return;
+  }
+
+  for (const item of items) {
+    const name = itemName(item);
+    console.log(`   Processing: ${name}`);
+
+    const fp = computeItemFingerprint(item);
+    const key = `${categoryName}::${name}`;
+    const storedFp = fingerprints[key];
+
+    // Cache hit — skip AI call entirely
+    if (storedFp && storedFp === fp && !FORCE) {
+      console.log(`   ⏭️  Cache hit (fingerprint unchanged). Skipping.`);
+      stats.cached++;
+      continue;
+    }
+
+    let pattern;
+    if (USE_AI) {
+      const existing = findExistingPattern(categoryName, name);
+      pattern = await aiProcessor(item, existing);
+      await delay(rateLimitDelay);
+    } else {
+      pattern = basicCreator(item);
+    }
+
+    if (pattern) {
+      const action = upsertPattern(categoryName, pattern);
+      console.log(`   ${action === 'updated' ? '📝 Updated' : '✅ Added'}: ${pattern.name}`);
+      fingerprints[key] = fp;
+      stats.processed++;
+      stats.addedCount++;
+      stats.processedFiles.push(name);
+
+      // Checkpoint after each item (crash-safe)
+      writeCheckpoint();
+    } else {
+      stats.failed++;
+      stats.errorCount++;
+    }
+  }
+}
+
+function writeCheckpoint() {
+  sdkPatterns._enrichedFingerprints = fingerprints;
+  sdkPatterns.metadata = sdkPatterns.metadata || {};
+  sdkPatterns.metadata.enrichedWithExamples = {
+    timestamp: new Date().toISOString(),
+    source: 'https://github.com/orderlynetwork/example-dex',
+    mode: USE_AI ? 'ai-enhanced' : 'basic',
+    patternsAdded: stats.addedCount,
+    errors: stats.errorCount,
+    processedFiles: stats.processedFiles,
+    cacheStats: {
+      processed: stats.processed,
+      cached: stats.cached,
+      failed: stats.failed,
+    },
+  };
+  if (USE_AI) {
+    sdkPatterns.metadata.enrichedWithExamples.model = NEAR_AI_MODEL;
+  }
+  atomicWriteJson(SDK_PATTERNS_FILE, sdkPatterns);
+}
+
 // AI prompt for analyzing a component
-function createComponentAnalysisPrompt(component, category) {
+function createComponentAnalysisPrompt(component, category, existingPattern = null) {
+  const existingBlock = existingPattern
+    ? `\nEXISTING PATTERN (UPDATE this where the new source improves it; otherwise preserve accurate parts):\n${JSON.stringify(existingPattern, null, 2)}\n`
+    : '';
+
   return `Analyze this React/TypeScript component from the Orderly Network example-dex repository and create a comprehensive SDK pattern.
 
 Component: ${component.filename}
@@ -108,7 +283,7 @@ Source Code:
 \`\`\`typescript
 ${component.content}
 \`\`\`
-
+${existingBlock}
 Generate a comprehensive pattern object with the following structure:
 
 {
@@ -145,12 +320,16 @@ Guidelines:
 5. Identify difficulty level honestly
 6. List actual prerequisites for using this
 7. Cross-reference related Orderly SDK features
-
+${existingPattern ? '8. CRITICAL: When EXISTING PATTERN is provided, refine it based on new source rather than starting from scratch. Preserve accurate content; update improved content.\n' : ''}
 Return ONLY valid JSON, no markdown formatting.`;
 }
 
 // AI prompt for analyzing implementation patterns
-function createPatternAnalysisPrompt(pattern) {
+function createPatternAnalysisPrompt(pattern, existingPattern = null) {
+  const existingBlock = existingPattern
+    ? `\nEXISTING PATTERN (UPDATE this where the new source improves it; otherwise preserve accurate parts):\n${JSON.stringify(existingPattern, null, 2)}\n`
+    : '';
+
   return `Analyze this implementation pattern from the Orderly Network example-dex repository.
 
 Pattern: ${pattern.name}
@@ -165,7 +344,7 @@ ${pattern.keyCode || '// No key code provided'}
 
 Steps:
 ${pattern.steps?.map((s, i) => `${i + 1}. ${s}`).join('\n') || 'No steps provided'}
-
+${existingBlock}
 Generate an enhanced pattern object:
 
 {
@@ -193,13 +372,13 @@ Generate an enhanced pattern object:
   "prerequisites": ["Required knowledge/components"],
   "related": ["Related patterns or hooks"]
 }
-
+${existingPattern ? '\nCRITICAL: When EXISTING PATTERN is provided, refine it based on new source rather than starting from scratch. Preserve accurate content; update improved content.\n' : ''}
 Make this educational and practical. Return ONLY valid JSON.`;
 }
 
 // Process a single component with AI
-async function processComponentWithAI(component, category) {
-  const prompt = createComponentAnalysisPrompt(component, category);
+async function processComponentWithAI(component, category, existingPattern = null) {
+  const prompt = createComponentAnalysisPrompt(component, category, existingPattern);
 
   try {
     const completion = await openai.chat.completions.create({
@@ -243,8 +422,8 @@ async function processComponentWithAI(component, category) {
 }
 
 // Process implementation pattern with AI
-async function processPatternWithAI(pattern) {
-  const prompt = createPatternAnalysisPrompt(pattern);
+async function processPatternWithAI(pattern, existingPattern = null) {
+  const prompt = createPatternAnalysisPrompt(pattern, existingPattern);
 
   try {
     const completion = await openai.chat.completions.create({
@@ -332,358 +511,130 @@ function createComponentPattern(component, categoryName) {
 
 // Main processing function
 async function main() {
-  let addedCount = 0;
-  let errorCount = 0;
-  const processedFiles = [];
-  const RATE_LIMIT_DELAY = 500;
-
-  // Process implementation patterns
+  // 1. Process implementation patterns — pre-group by category because each
+  //    pattern's target category is derived from its own `category` field.
   console.log('📋 Processing implementation patterns...\n');
+  const patternsByCategory = {};
   for (const pattern of exampleDexData.patterns || []) {
-    console.log(`   Processing: ${pattern.name}`);
-
-    let enhancedPattern;
-    if (USE_AI) {
-      enhancedPattern = await processPatternWithAI(pattern);
-      await delay(RATE_LIMIT_DELAY);
-    } else {
-      enhancedPattern = createPatternFromExample(pattern);
+    let cat;
+    switch (pattern.category) {
+      case 'charts':
+        cat = 'Charts & Visualization';
+        break;
+      case 'trading':
+        cat = 'Trading Interface';
+        break;
+      case 'positions':
+        cat = 'Position Management';
+        break;
+      case 'wallet':
+        cat = 'Wallet Connection';
+        break;
+      case 'orderManagement':
+        cat = 'Order Management';
+        break;
+      default:
+        cat = 'DEX Components';
     }
-
-    if (enhancedPattern) {
-      // Map category
-      let categoryName;
-      switch (pattern.category) {
-        case 'charts':
-          categoryName = 'Charts & Visualization';
-          break;
-        case 'trading':
-          categoryName = 'Trading Interface';
-          break;
-        case 'positions':
-          categoryName = 'Position Management';
-          break;
-        case 'wallet':
-          categoryName = 'Wallet Connection';
-          break;
-        case 'orderManagement':
-          categoryName = 'Order Management';
-          break;
-        default:
-          categoryName = 'DEX Components';
-      }
-
-      const category = findOrCreateCategory(sdkPatterns.categories, categoryName);
-
-      const existingIndex = category.patterns.findIndex(
-        (p) => p.name.toLowerCase() === enhancedPattern.name.toLowerCase()
-      );
-
-      if (existingIndex >= 0) {
-        category.patterns[existingIndex] = enhancedPattern;
-        console.log(`   📝 Updated: ${enhancedPattern.name}`);
-      } else {
-        category.patterns.push(enhancedPattern);
-        console.log(`   ✅ Added: ${enhancedPattern.name}`);
-      }
-
-      addedCount++;
-      processedFiles.push(pattern.name);
-    } else {
-      errorCount++;
-    }
+    if (!patternsByCategory[cat]) patternsByCategory[cat] = [];
+    patternsByCategory[cat].push(pattern);
   }
 
-  // Process chart components
+  for (const [cat, items] of Object.entries(patternsByCategory)) {
+    console.log(`\n📂 ${cat}:`);
+    await processItems(items, cat, {
+      aiProcessor: (item, existing) => processPatternWithAI(item, existing),
+      basicCreator: createPatternFromExample,
+      itemName: (item) => item.name,
+    });
+  }
+
+  // 2. Chart components (lightweight + tradingView)
   console.log('\n📊 Processing chart components...\n');
-  const chartComponents = [
-    ...(exampleDexData.charts?.lightweightCharts || []),
-    ...(exampleDexData.charts?.tradingView || []),
-  ];
-
-  for (const component of chartComponents) {
-    console.log(`   Processing: ${component.filename}`);
-
-    let enhancedPattern;
-    if (USE_AI) {
-      enhancedPattern = await processComponentWithAI(component, 'Chart Components');
-      await delay(RATE_LIMIT_DELAY);
-    } else {
-      enhancedPattern = createComponentPattern(component, 'Chart Components');
+  await processItems(
+    [...(exampleDexData.charts?.lightweightCharts || []), ...(exampleDexData.charts?.tradingView || [])],
+    'Chart Components',
+    {
+      aiProcessor: (item, existing) => processComponentWithAI(item, 'Chart Components', existing),
+      basicCreator: (item) => createComponentPattern(item, 'Chart Components'),
+      itemName: (item) => item.filename,
     }
+  );
 
-    if (enhancedPattern) {
-      const category = findOrCreateCategory(sdkPatterns.categories, 'Chart Components');
-
-      const existingIndex = category.patterns.findIndex(
-        (p) => p.name.toLowerCase() === enhancedPattern.name.toLowerCase()
-      );
-
-      if (existingIndex >= 0) {
-        category.patterns[existingIndex] = enhancedPattern;
-        console.log(`   📝 Updated: ${enhancedPattern.name}`);
-      } else {
-        category.patterns.push(enhancedPattern);
-        console.log(`   ✅ Added: ${enhancedPattern.name}`);
-      }
-
-      addedCount++;
-      processedFiles.push(component.filename);
-    } else {
-      errorCount++;
-    }
-  }
-
-  // Process WebSocket services
+  // 3. WebSocket services
   console.log('\n📡 Processing WebSocket services...\n');
-  for (const service of exampleDexData.charts?.websocketServices || []) {
-    console.log(`   Processing: ${service.filename}`);
+  await processItems(exampleDexData.charts?.websocketServices || [], 'WebSocket Services', {
+    aiProcessor: (item, existing) => processComponentWithAI(item, 'WebSocket Services', existing),
+    basicCreator: (item) => ({
+      name: item.filename.replace('.ts', ''),
+      description: item.description,
+      usage: 'Real-time WebSocket data subscription service',
+      example: item.content,
+      notes: [
+        ...(item.keyFeatures || []),
+        `Supports resolutions: ${item.resolutions?.join(', ')}`,
+        `Source: https://github.com/orderlynetwork/example-dex/blob/master/app/services/${item.filename}`,
+      ],
+      related: ['@orderly.network/net', '@orderly.network/hooks'],
+    }),
+    itemName: (item) => item.filename,
+  });
 
-    let enhancedPattern;
-    if (USE_AI) {
-      enhancedPattern = await processComponentWithAI(service, 'WebSocket Services');
-      await delay(RATE_LIMIT_DELAY);
-    } else {
-      enhancedPattern = {
-        name: service.filename.replace('.ts', ''),
-        description: service.description,
-        usage: 'Real-time WebSocket data subscription service',
-        example: service.content,
-        notes: [
-          ...service.keyFeatures,
-          `Supports resolutions: ${service.resolutions?.join(', ')}`,
-          `Source: https://github.com/orderlynetwork/example-dex/blob/master/app/services/${service.filename}`,
-        ],
-        related: ['@orderly.network/net', '@orderly.network/hooks'],
-      };
-    }
-
-    if (enhancedPattern) {
-      const category = findOrCreateCategory(sdkPatterns.categories, 'WebSocket Services');
-
-      const existingIndex = category.patterns.findIndex(
-        (p) => p.name.toLowerCase() === enhancedPattern.name.toLowerCase()
-      );
-
-      if (existingIndex >= 0) {
-        category.patterns[existingIndex] = enhancedPattern;
-        console.log(`   📝 Updated: ${enhancedPattern.name}`);
-      } else {
-        category.patterns.push(enhancedPattern);
-        console.log(`   ✅ Added: ${enhancedPattern.name}`);
-      }
-
-      addedCount++;
-      processedFiles.push(service.filename);
-    } else {
-      errorCount++;
-    }
-  }
-
-  // Process trading components
+  // 4. Trading components
   console.log('\n🔄 Processing trading components...\n');
-  for (const component of exampleDexData.components?.trading || []) {
-    console.log(`   Processing: ${component.filename}`);
+  await processItems(exampleDexData.components?.trading || [], 'Trading Components', {
+    aiProcessor: (item, existing) => processComponentWithAI(item, 'Trading Components', existing),
+    basicCreator: (item) => createComponentPattern(item, 'Trading Components'),
+    itemName: (item) => item.filename,
+  });
 
-    let enhancedPattern;
-    if (USE_AI) {
-      enhancedPattern = await processComponentWithAI(component, 'Trading Components');
-      await delay(RATE_LIMIT_DELAY);
-    } else {
-      enhancedPattern = createComponentPattern(component, 'Trading Components');
-    }
-
-    if (enhancedPattern) {
-      const category = findOrCreateCategory(sdkPatterns.categories, 'Trading Components');
-
-      const existingIndex = category.patterns.findIndex(
-        (p) => p.name.toLowerCase() === enhancedPattern.name.toLowerCase()
-      );
-
-      if (existingIndex >= 0) {
-        category.patterns[existingIndex] = enhancedPattern;
-        console.log(`   📝 Updated: ${enhancedPattern.name}`);
-      } else {
-        category.patterns.push(enhancedPattern);
-        console.log(`   ✅ Added: ${enhancedPattern.name}`);
-      }
-
-      addedCount++;
-      processedFiles.push(component.filename);
-    } else {
-      errorCount++;
-    }
-  }
-
-  // Process position components
+  // 5. Position components
   console.log('\n📈 Processing position components...\n');
-  for (const component of exampleDexData.components?.positionManagement || []) {
-    console.log(`   Processing: ${component.filename}`);
+  await processItems(exampleDexData.components?.positionManagement || [], 'Position Components', {
+    aiProcessor: (item, existing) => processComponentWithAI(item, 'Position Components', existing),
+    basicCreator: (item) => createComponentPattern(item, 'Position Components'),
+    itemName: (item) => item.filename,
+  });
 
-    let enhancedPattern;
-    if (USE_AI) {
-      enhancedPattern = await processComponentWithAI(component, 'Position Components');
-      await delay(RATE_LIMIT_DELAY);
-    } else {
-      enhancedPattern = createComponentPattern(component, 'Position Components');
-    }
-
-    if (enhancedPattern) {
-      const category = findOrCreateCategory(sdkPatterns.categories, 'Position Components');
-
-      const existingIndex = category.patterns.findIndex(
-        (p) => p.name.toLowerCase() === enhancedPattern.name.toLowerCase()
-      );
-
-      if (existingIndex >= 0) {
-        category.patterns[existingIndex] = enhancedPattern;
-        console.log(`   📝 Updated: ${enhancedPattern.name}`);
-      } else {
-        category.patterns.push(enhancedPattern);
-        console.log(`   ✅ Added: ${enhancedPattern.name}`);
-      }
-
-      addedCount++;
-      processedFiles.push(component.filename);
-    } else {
-      errorCount++;
-    }
-  }
-
-  // Process order components
+  // 6. Order components
   console.log('\n📋 Processing order components...\n');
-  for (const component of exampleDexData.components?.orderManagement || []) {
-    console.log(`   Processing: ${component.filename}`);
+  await processItems(exampleDexData.components?.orderManagement || [], 'Order Components', {
+    aiProcessor: (item, existing) => processComponentWithAI(item, 'Order Components', existing),
+    basicCreator: (item) => createComponentPattern(item, 'Order Components'),
+    itemName: (item) => item.filename,
+  });
 
-    let enhancedPattern;
-    if (USE_AI) {
-      enhancedPattern = await processComponentWithAI(component, 'Order Components');
-      await delay(RATE_LIMIT_DELAY);
-    } else {
-      enhancedPattern = createComponentPattern(component, 'Order Components');
-    }
-
-    if (enhancedPattern) {
-      const category = findOrCreateCategory(sdkPatterns.categories, 'Order Components');
-
-      const existingIndex = category.patterns.findIndex(
-        (p) => p.name.toLowerCase() === enhancedPattern.name.toLowerCase()
-      );
-
-      if (existingIndex >= 0) {
-        category.patterns[existingIndex] = enhancedPattern;
-        console.log(`   📝 Updated: ${enhancedPattern.name}`);
-      } else {
-        category.patterns.push(enhancedPattern);
-        console.log(`   ✅ Added: ${enhancedPattern.name}`);
-      }
-
-      addedCount++;
-      processedFiles.push(component.filename);
-    } else {
-      errorCount++;
-    }
-  }
-
-  // Process wallet components
+  // 7. Wallet components
   console.log('\n👛 Processing wallet components...\n');
-  for (const component of exampleDexData.components?.wallet || []) {
-    console.log(`   Processing: ${component.filename}`);
+  await processItems(exampleDexData.components?.wallet || [], 'Wallet Components', {
+    aiProcessor: (item, existing) => processComponentWithAI(item, 'Wallet Components', existing),
+    basicCreator: (item) => createComponentPattern(item, 'Wallet Components'),
+    itemName: (item) => item.filename,
+  });
 
-    let enhancedPattern;
-    if (USE_AI) {
-      enhancedPattern = await processComponentWithAI(component, 'Wallet Components');
-      await delay(RATE_LIMIT_DELAY);
-    } else {
-      enhancedPattern = createComponentPattern(component, 'Wallet Components');
-    }
-
-    if (enhancedPattern) {
-      const category = findOrCreateCategory(sdkPatterns.categories, 'Wallet Components');
-
-      const existingIndex = category.patterns.findIndex(
-        (p) => p.name.toLowerCase() === enhancedPattern.name.toLowerCase()
-      );
-
-      if (existingIndex >= 0) {
-        category.patterns[existingIndex] = enhancedPattern;
-        console.log(`   📝 Updated: ${enhancedPattern.name}`);
-      } else {
-        category.patterns.push(enhancedPattern);
-        console.log(`   ✅ Added: ${enhancedPattern.name}`);
-      }
-
-      addedCount++;
-      processedFiles.push(component.filename);
-    } else {
-      errorCount++;
-    }
-  }
-
-  // Process account components
+  // 8. Account components
   console.log('\n💰 Processing account components...\n');
-  for (const component of exampleDexData.components?.account || []) {
-    console.log(`   Processing: ${component.filename}`);
+  await processItems(exampleDexData.components?.account || [], 'Account Components', {
+    aiProcessor: (item, existing) => processComponentWithAI(item, 'Account Components', existing),
+    basicCreator: (item) => createComponentPattern(item, 'Account Components'),
+    itemName: (item) => item.filename,
+  });
 
-    let enhancedPattern;
-    if (USE_AI) {
-      enhancedPattern = await processComponentWithAI(component, 'Account Components');
-      await delay(RATE_LIMIT_DELAY);
-    } else {
-      enhancedPattern = createComponentPattern(component, 'Account Components');
-    }
-
-    if (enhancedPattern) {
-      const category = findOrCreateCategory(sdkPatterns.categories, 'Account Components');
-
-      const existingIndex = category.patterns.findIndex(
-        (p) => p.name.toLowerCase() === enhancedPattern.name.toLowerCase()
-      );
-
-      if (existingIndex >= 0) {
-        category.patterns[existingIndex] = enhancedPattern;
-        console.log(`   📝 Updated: ${enhancedPattern.name}`);
-      } else {
-        category.patterns.push(enhancedPattern);
-        console.log(`   ✅ Added: ${enhancedPattern.name}`);
-      }
-
-      addedCount++;
-      processedFiles.push(component.filename);
-    } else {
-      errorCount++;
-    }
-  }
-
-  // Update metadata
-  sdkPatterns.metadata = sdkPatterns.metadata || {};
-  sdkPatterns.metadata.enrichedWithExamples = {
-    timestamp: new Date().toISOString(),
-    source: 'https://github.com/orderlynetwork/example-dex',
-    mode: USE_AI ? 'ai-enhanced' : 'basic',
-    patternsAdded: addedCount,
-    errors: errorCount,
-    processedFiles,
-  };
-
-  if (USE_AI) {
-    sdkPatterns.metadata.enrichedWithExamples.model = NEAR_AI_MODEL;
-  }
-
-  // Write updated SDK patterns
-  fs.writeFileSync(SDK_PATTERNS_FILE, JSON.stringify(sdkPatterns, null, 2));
+  // Final checkpoint (already written incrementally, this just updates stats)
+  writeCheckpoint();
 
   console.log(`\n✅ Enrichment complete!`);
   console.log(`📄 Updated: ${SDK_PATTERNS_FILE}`);
   console.log(`\nSummary:`);
-  console.log(`   - Mode: ${USE_AI ? 'AI-Enhanced' : 'Basic'}`);
+  console.log(`   - Mode: ${USE_AI ? 'AI-Enhanced' : 'Basic'} ${FORCE ? '(FORCE)' : ''}`);
   console.log(`   - Total categories: ${sdkPatterns.categories.length}`);
-  console.log(`   - Patterns processed: ${addedCount}`);
-  if (errorCount > 0) {
-    console.log(`   - Errors: ${errorCount}`);
+  console.log(`   - Processed: ${stats.processed} (added/updated)`);
+  console.log(`   - Cached:   ${stats.cached} (skipped, fingerprint unchanged)`);
+  if (stats.failed > 0) {
+    console.log(`   - Failed:   ${stats.failed}`);
   }
   if (USE_AI) {
-    console.log(`   - Model: ${NEAR_AI_MODEL}`);
+    console.log(`   - Model:    ${NEAR_AI_MODEL}`);
   }
   console.log(`\nNext: yarn build && yarn test:run`);
 }

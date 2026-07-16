@@ -578,66 +578,54 @@ This runs: `generate_api_from_openapi`, `generate_indexer_api`, `generate_sv_api
 Generate everything from scratch:
 
 ```bash
-# 1. Download latest official docs
-curl -o llms-full.txt https://orderly.network/docs/llms-full.txt
+# 1. (Optional) Process Telegram export — 2 steps with manual review between
+node scripts/clean_telegram_export.js    # 🆓 free, filter → telegram_chats_filtered/
+# ...review + delete unwanted files manually...
+node scripts/analyze_telegram_chats.js      # 💰 costs money → tg_analysis.json
 
-# 2. Split Telegram export (if you have one)
-node scripts/split_telegram_chats.js
+# 2. Analyze docs → docs_analysis.json                                 💰 costs money
+#    (clones OrderlyNetwork/documentation-public automatically)
+node scripts/analyze_docs.js
 
-# 3. Analyze Telegram chats → tg_analysis.json
-node scripts/analyze_chat_openai.js
-
-# 4. Analyze docs → docs_analysis.json
-node scripts/analyze_llms_full.js
-
-# 5. Get SDK patterns from source (FREE - no AI calls)
+# 3. Get SDK patterns from source                                      🆓 free
 node scripts/analyze_sdk.js
 
-# 6. Get DEX examples from example-dex repo
-# Option A: Basic (FREE - no AI calls)
+# 4. Get DEX examples from example-dex repo                            🆓 free
 git clone --depth 1 https://github.com/orderlynetwork/example-dex.git /tmp/example-dex
 node scripts/analyze_example_dex.js
 node scripts/enrich_sdk_patterns_with_examples.js
 
-# Option B: AI-Enhanced (~$1-3, better documentation)
-# git clone --depth 1 https://github.com/orderlynetwork/example-dex.git /tmp/example-dex
-# node scripts/analyze_example_dex.js
-# USE_AI=true node scripts/enrich_sdk_patterns_with_examples.js
-
-# 7. Generate documentation and workflows
+# 5. Generate documentation and workflows                              💰 costs money
 node scripts/generate_mcp_data.js
 
-# 8. Generate API docs from OpenAPI spec
+# 6. Generate API docs from OpenAPI spec                               🆓 free
 node scripts/generate_api_from_openapi.js
 
-# 9. Generate Indexer API docs from OpenAPI spec
+# 7. Generate Indexer API docs from OpenAPI spec                       🆓 free
 node scripts/generate_indexer_api.js
 
-# 10. Generate Orderly One API docs from OpenAPI spec
+# 8. Generate Orderly One API docs from OpenAPI spec                   🆓 free
 node scripts/generate_orderly_one_api.js
 
-# 11. Generate contract addresses
+# 9. Generate contract addresses                                       🆓 free
 node scripts/generate_contracts.js
 
-# 12. Build and test
+# 10. Build and test
 yarn build && yarn test:run
 ```
 
 ### Update Only Documentation
 
-If you just want to refresh from official docs without Telegram data:
+Refresh from official docs (uses git-cloned repo as source):
 
 ```bash
-# 1. Download latest docs
-curl -o llms-full.txt https://orderly.network/docs/llms-full.txt
+# 1. Analyze docs only (clones repo automatically)                     💰 costs money
+node scripts/analyze_docs.js
 
-# 2. Analyze docs only
-node scripts/analyze_llms_full.js
-
-# 3. Generate (will use existing tg_analysis.json if present)
+# 2. Generate                                                           💰 costs money
 node scripts/generate_mcp_data.js
 
-# 4. Build
+# 3. Build
 yarn build
 ```
 
@@ -645,23 +633,23 @@ yarn build
 
 | File                      | Source                         | Generation Script                                                                                 |
 | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------- |
-| **documentation.json**    | Official docs + Telegram chats | `generate_mcp_data.js`                                                                            |
+| **documentation.json**    | Official docs (git: documentation-public) | `generate_mcp_data.js`                                                                            |
 | **sdk-patterns.json**     | SDK source code (GitHub)       | `analyze_sdk.js`                                                                                  |
 | **sdk-patterns.json**     | Example DEX repo (GitHub)      | `analyze_example_dex.js` + `enrich_sdk_patterns_with_examples.js` (add `USE_AI=true` for AI mode) |
 | **component-guides.json** | SDK source code (GitHub)       | `analyze_sdk.js`                                                                                  |
-| **workflows.json**        | Official docs + Telegram chats | `generate_mcp_data.js`                                                                            |
+| **workflows.json**        | Official docs (git: documentation-public) | `generate_mcp_data.js`                                                                            |
 | **api.json**              | OpenAPI spec                   | `generate_api_from_openapi.js`                                                                    |
 | **indexer-api.json**      | Indexer API OpenAPI spec       | `generate_indexer_api.js`                                                                         |
 | **orderly-one-api.json**  | Orderly One OpenAPI spec       | `generate_orderly_one_api.js`                                                                     |
 | **sv-api.json**           | Strategy Vault OpenAPI spec    | `generate_sv_api.js`                                                                              |
 | **public-info-api.json**  | Public Info API MDX docs       | `generate_public_info_api.js`                                                                     |
-| **contracts.json**        | Official docs (llms-full.txt)  | `generate_contracts.js`                                                                           |
+| **contracts.json**        | Official docs (Git: documentation-public) | `generate_contracts.js`                                                                           |
 
 ## Contributing
 
 To add new content, you need to update the source data and regenerate:
 
-1. **New Documentation**: Update `llms-full.txt` or Telegram exports, then run generation scripts
+1. **New Documentation**: Update `documentation-public` repo (or Telegram exports), then run generation scripts
 2. **New SDK Pattern**: The SDK is auto-parsed from GitHub - patterns appear automatically when SDK updates
 3. **New DEX Examples**: Clone the [example-dex](https://github.com/orderlynetwork/example-dex) repo and run the analysis scripts
 4. **New Chain**: Update source documentation, then regenerate

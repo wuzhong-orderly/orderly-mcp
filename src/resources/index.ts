@@ -134,7 +134,14 @@ function formatSearchResults<T extends SearchableItem>(
 
 export async function getResource(uri: string) {
   const { baseUri, searchQuery, page, limit } = parseResourceUri(uri);
-  const dataDir = path.join(__dirname, '..', 'data');
+  // When bundled by esbuild into dist/index.js, __dirname is dist/.
+  // When running source via vitest, __dirname is src/resources/.
+  // In both cases the data dir is a sibling of the running file's parent's
+  // 'data' folder — i.e. either dist/data/ or ../data/ (src/data/).
+  // The dist/ case is what production uses; ../data covers the source case.
+  const dataDir = fs.existsSync(path.join(__dirname, 'data'))
+    ? path.join(__dirname, 'data')
+    : path.join(__dirname, '..', 'data');
 
   try {
     switch (baseUri) {

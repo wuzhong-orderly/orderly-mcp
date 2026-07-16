@@ -52,7 +52,7 @@ const client = USE_AI
     })
   : null;
 
-const MODEL = 'Qwen/Qwen3.5-122B-A10B';
+const MODEL = 'qwen/qwen3.7-max';
 
 // ==================== PASS 1: EXTRACT HOOKS ====================
 
@@ -417,7 +417,17 @@ if (USE_AI) {
     console.log(
       `📝 Enriching ${hooksToEnrich.length} hooks (${newHooks.length} new + ${changedHooks.length} changed)...`
     );
-    enrichedHooks = await enrichHooksWithAI(hooksToEnrich, allExistingPatternNames);
+    // Build map of name -> prior aiExample so AI can refine instead of starting fresh
+    const priorHookExamples = Object.fromEntries(
+      Object.entries(existingData.hookMap)
+        .map(([name, data]) => [name, data.pattern?.aiExample])
+        .filter(([_, v]) => v)
+    );
+    enrichedHooks = await enrichHooksWithAI(
+      hooksToEnrich,
+      allExistingPatternNames,
+      priorHookExamples
+    );
     console.log(`   ✅ Enriched ${enrichedHooks.length} hooks\n`);
   } else {
     console.log('📝 No hooks to enrich\n');
@@ -427,7 +437,16 @@ if (USE_AI) {
     console.log(
       `🧩 Enriching ${componentsToEnrich.length} components (${newComponents.length} new + ${changedComponents.length} changed)...`
     );
-    enrichedComponents = await enrichComponentsWithAI(componentsToEnrich, allExistingPatternNames);
+    const priorComponentExamples = Object.fromEntries(
+      Object.entries(existingData.componentMap)
+        .map(([name, pattern]) => [name, pattern?.aiExample])
+        .filter(([_, v]) => v)
+    );
+    enrichedComponents = await enrichComponentsWithAI(
+      componentsToEnrich,
+      allExistingPatternNames,
+      priorComponentExamples
+    );
     console.log(`   ✅ Enriched ${enrichedComponents.length} components\n`);
   } else {
     console.log('🧩 No components to enrich\n');
@@ -667,7 +686,7 @@ function computeComponentFingerprint(component) {
 
 // ==================== AI ENRICHMENT FUNCTIONS ====================
 
-async function enrichHooksWithAI(hooks, existingPatternNames = []) {
+async function enrichHooksWithAI(hooks, existingPatternNames = [], priorExamplesByName = {}) {
   const enriched = [];
   const batchSize = 10;
 
@@ -686,14 +705,19 @@ async function enrichHooksWithAI(hooks, existingPatternNames = []) {
 ${existingContext}
 Context for each hook:
 ${batch
-  .map(
-    (h) => `
+  .map((h) => {
+    const prior = priorExamplesByName[h.name];
+    return `
 Hook: ${h.name}
 Description: ${h.description || 'N/A'}
 Returns: ${h.returnInfo?.properties?.join(', ') || 'unknown'}
 Source: ${h.sourceFile}
-`
-  )
+${
+  prior
+    ? `EXISTING AI EXAMPLE (UPDATE this where the new source improves it; otherwise keep as-is):\n${JSON.stringify(prior, null, 2)}\n`
+    : ''
+}`;
+  })
   .join('\n')}
 
 For each hook, generate:
@@ -701,6 +725,8 @@ For each hook, generate:
 2. Complete working code example (import, usage, comments)
 3. List of 3 key points developers should know
 4. 2-3 related hooks that work well together
+
+CRITICAL: When an EXISTING AI EXAMPLE is provided for a hook, refine it based on the new source context rather than starting from scratch. Preserve what's still accurate; update what's improved.
 
 Return JSON:
 {
@@ -761,7 +787,11 @@ Return JSON:
   return enriched;
 }
 
-async function enrichComponentsWithAI(components, existingPatternNames = []) {
+async function enrichComponentsWithAI(
+  components,
+  existingPatternNames = [],
+  priorExamplesByName = {}
+) {
   const enriched = [];
   const batchSize = 8;
 
@@ -780,8 +810,9 @@ async function enrichComponentsWithAI(components, existingPatternNames = []) {
 ${existingContext}
 Context from SDK:
 ${batch
-  .map(
-    (c) => `
+  .map((c) => {
+    const prior = priorExamplesByName[c.name];
+    return `
 Component: ${c.name}
 Package: ${c.package}
 File: ${c.file}
@@ -805,8 +836,12 @@ ${
         .join('\n')
     : ''
 }
-`
-  )
+${
+  prior
+    ? `EXISTING AI EXAMPLE (UPDATE this where the new source improves it; otherwise keep as-is):\n${JSON.stringify(prior, null, 2)}\n`
+    : ''
+}`;
+  })
   .join('\n---\n')}
 
 For each component, generate:
@@ -815,6 +850,8 @@ For each component, generate:
 3. Complete working code example (imports, props, usage)
 4. Common props with examples
 5. 2-3 related components or hooks
+
+CRITICAL: When an EXISTING AI EXAMPLE is provided for a component, refine it based on the new source context rather than starting from scratch. Preserve what's still accurate; update what's improved.
 
 Return JSON:
 {

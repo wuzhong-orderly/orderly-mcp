@@ -22,10 +22,11 @@ coverage
 .DS_Store
 Thumbs.db
 # scripts/ - needed for build
-telegram_chat_exports/
+telegram_chats_filtered/
 tg_analysis.json
 docs_analysis.json
-llms-full.txt
+.temp-docs/
+.temp-sdk/
 .eslintrc*
 .prettierrc*
 tsconfig.json

@@ -72,7 +72,7 @@ export function createMcpServer(): Server {
               pattern: {
                 type: 'string',
                 description:
-                  "Pattern or hook name (e.g., 'useOrderEntry', 'usePositionStream', 'wallet-connection')",
+                  "Pattern or hook name (e.g., 'useOrderEntry', 'usePositionStream', 'WalletConnectorWidget')",
               },
               includeExample: {
                 type: 'boolean',
@@ -118,7 +118,7 @@ export function createMcpServer(): Server {
               workflow: {
                 type: 'string',
                 description:
-                  "Workflow name (e.g., 'wallet-connection', 'place-first-order', 'deposit-withdraw', 'subaccount-management')",
+                  "Workflow topic, name fragment, or natural-language description (e.g., 'wallet connection', 'deposit', 'setting up react sdk', 'placing orders'). Matches are fuzzy — partial words and multi-word queries work.",
               },
             },
             required: ['workflow'],

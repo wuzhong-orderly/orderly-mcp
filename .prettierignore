@@ -17,8 +17,9 @@ tg_analysis.json
 example_dex_analysis.json
 repo_analysis.json
 result.json
-llms-full.txt
-telegram_chat_exports/
+.temp-docs/
+.temp-sdk/
+telegram_chats_filtered/
 
 # Test output
 coverage/

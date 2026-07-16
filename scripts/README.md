@@ -4,33 +4,46 @@
 
 These scripts automate the generation of all MCP server data files using **NEAR AI Cloud** with structured output (Zod schemas).
 
-**Model:** `zai-org/GLM-4.7` (via NEAR AI Cloud API)
+**Model:** `qwen/qwen3.7-max` (via NEAR AI Cloud API)
 
 ## Workflow
 
 ### Step 1: Analyze Sources
 
-**A. Process Telegram Chat Export**
+**A. Process Official Documentation**
 
 ```bash
-# Split the export (run once)
-node scripts/split_telegram_chats.js
-
-# Analyze with NEAR AI
-node scripts/analyze_chat_openai.js
-# Output: tg_analysis.json (root level)
-```
-
-**B. Process Official Documentation**
-
-```bash
-# Download latest docs
-curl -o llms-full.txt https://orderly.network/docs/llms-full.txt
-
-# Analyze with NEAR AI
-node scripts/analyze_llms_full.js
+# Clone OrderlyNetwork/documentation-public automatically and process
+# the canonical pages listed in llms.config.json (incremental — only
+# new/changed pages are re-sent to the AI)
+node scripts/analyze_docs.js
 # Output: docs_analysis.json
 ```
+
+**B. Process Telegram Chat Export (Optional)**
+
+Two-step pipeline with manual review between:
+
+```bash
+# Step 1: Clean & filter raw Telegram export → one .txt chat log per kept chat
+node scripts/clean_telegram_export.js
+# Output: telegram_chats_filtered/*.txt (review + delete unwanted files manually)
+
+# Step 2: After review, run AI analysis on what you kept
+node scripts/analyze_telegram_chats.js
+# Output: tg_analysis.json
+```
+
+The cleanup script keeps only group chats that:
+- Are of type "group" (skips DMs, channels, bots)
+- Contain "Orderly" in the name (case-insensitive)
+- Contain `<>`, `&`, ` x ` (with spaces), or `|` in the name
+- Do NOT contain `Orderly One`, `Configuration`, or `Orderly Team` in the name
+
+Each kept chat is preprocessed (service messages, blocked senders, URL-only,
+too-short messages dropped) and written as a plain-text chat log with a header
+(chat name, filter date, drop stats) + transcript body — so manual review is
+fast and the analyzer just sends the .txt to the AI as-is.
 
 **C. Analyze SDK Source Code (Optional but Recommended)**
 
@@ -65,39 +78,87 @@ yarn build && yarn test:run
 
 ## Scripts Reference
 
-### `analyze_chat_openai.js`
+### `clean_telegram_export.js`
 
-**Input:** `telegram_chat_exports/*.json` (from split_telegram_chats.js)  
-**Output:** `tg_analysis.json` (root level)  
-**Cost:** ~$0.50-1.00 per run (depends on chat size)
+**Input:** `result.json` (raw Telegram Desktop export) — set `INPUT=path` env to override  
+**Output:** `telegram_chats_filtered/*.txt` — one plain-text chat log per kept chat (header + transcript body)  
+**Cost:** 🆓 free (pure JSON streaming, no AI)
 
-Processes Telegram group chats to extract Q&A pairs from real developer conversations.
+Filters the raw Telegram export down to relevant Orderly group chats, then preprocesses each kept chat (drops service messages, blocked senders, URL-only, too-short messages) and writes a clean plain-text chat log:
 
-### `analyze_llms_full.js`
+```
+# Chat: Orderly | DeFi
+# Source: result.json (filtered on 2026-07-14)
+# Stats: 4500 raw messages → 1850 kept
+#   Dropped: 2100 service, 400 too-short, 100 url-only, 50 blocked-sender, 0 empty
 
-**Input:** `llms-full.txt` (download from Orderly docs)  
-**Output:** `docs_analysis.json`  
-**Cost:** ~$1.00-2.00 per run (depends on doc size)
+[2024-01-15 10:30] John Doe: Hey, how do I use the orderbook API?
+[2024-01-15 10:32] Alice: Subscribe to the WS topic orderbook.BTC-PERP first.
+```
 
-Processes official Orderly documentation to extract structured Q&A.
+Chat-level filters (keep chat if ALL of): type contains `group`; name contains `Orderly`; name contains `<>` OR `&` OR ` x ` OR `|`; name does NOT contain any of: `Orderly One`, `Configuration`, `Orderly Team` (final override).
+
+Idempotent — clears output dir at start. Output is human-reviewable plain text so you can quickly delete unwanted chats before AI analysis.
+
+**Env vars:** `INPUT`, `BLOCKED_SENDERS`, `MIN_MESSAGE_LENGTH`.
+
+### `analyze_telegram_chats.js`
+
+**Input:** `telegram_chats_filtered/*.txt` (from `clean_telegram_export.js`). Legacy `.json` files are accepted as a backward-compat fallback and preprocessed on the fly.  
+**Output:** `tg_analysis.json` (root level) — v2.0.0 shape with per-file cache  
+**Cost:** 💰 paid (incremental: only new/changed chat files are re-sent to AI)
+
+Extracts developer Q&A from each kept Telegram chat log. Per-file fingerprint cache (md5 of `PROMPT_VERSION` + filename + content); checkpoint after every file (crash-safe — writes serialized via mutex). **Concurrency:** up to `CONCURRENCY` (default 5) files processed in parallel via worker pool. Force mode: `FORCE=true node scripts/analyze_telegram_chats.js`.
+
+**Call config:** Client `timeout: 30min`, `maxRetries: 0`. Each AI call is wrapped in a 4-attempt retry loop with `[0, 30s, 60s, 120s]` backoff (mirrors `analyze_docs.js`). `temperature: 0.2` (extraction task).
+
+**Loading + metadata injection:** `.txt` files have their `# Chat:` / `# Stats:` header parsed for chat name + kept-message count, and the transcript body scanned for `[YYYY-MM-DD HH:MM]` stamps to derive a date range. All three are passed to the AI in the user prompt as `Chat:` / `Date range:` / `Messages:` lines. The header itself is stripped from the transcript body. Legacy `.json` files derive the same metadata from raw Telegram fields.
+
+**Cross-file context (mirrors `analyze_docs.js`):** On every cache miss, up to 30 relevant prior Q&A pairs from the whole corpus (keyword-filtered by the current chat's name) + same-file cached pairs (for refinement) are passed to the AI, deduped by question text, capped at 30. The system prompt explicitly tells the model NOT to echo back unchanged pairs — only NEW or REFINED/UPDATED versions.
+
+**Cache invalidation:** Switching from `.json` (raw) to `.txt` (clean chat log) changes every file's content hash, so the first run after migration re-processes every file. Subsequent runs are cached as normal. Bumping `PROMPT_VERSION` (in the script) does the same — use it when the system prompt changes meaningfully.
+
+Per-chat log shows transcript size + token estimate + context-pair count + retry attempts on failure (prefixed with `[i/N filename]` for traceable interleaved output):
+```
+Read .txt transcript.
+Chat: "Orderly | Solana", 2024-01-15..2024-03-22
+Transcript: 42KB (~11K tokens)
+Context: 5 same-file + 12 cross-file → 17 merged (cap 30)
+```
+
+Transcripts over `MAX_TRANSCRIPT_TOKENS` (50k tokens, ~200k chars) are truncated to the **latest** messages at message boundaries (tail kept, head dropped). Keeps cost predictable and avoids the model dropping the tail under context pressure.
+
+**Env vars:**
+- `BLOCKED_SENDERS=bot1,bot2` — comma-separated sender names to drop (case-insensitive substring)
+- `MIN_MESSAGE_LENGTH=10` — messages shorter than this after trim get dropped (set `0` to disable)
+- `NEAR_AI_TIMEOUT_MS=1800000` — per-request timeout in ms (default 30 min)
+- `CONCURRENCY=5` — number of chat files to process in parallel (set `1` for sequential)
+
+### `analyze_docs.js`
+
+**Input:** Clones `https://github.com/OrderlyNetwork/documentation-public` automatically, processes the 49 canonical pages listed in `llms.config.json`  
+**Output:** `docs_analysis.json` (v3.0.0 shape with per-file cache)  
+**Cost:** ~$1-3 first run; near $0 on subsequent runs (only changed pages reprocessed)
+
+Processes official Orderly documentation to extract structured Q&A. Per-file fingerprinting means editing one doc only invalidates that one page's cache.
 
 ### `generate_mcp_data.js`
 
 **Input:**
 
-- `telegram_chat_exports/tg_analysis.json`
-- `docs_analysis.json`
+- `docs_analysis.json` (required)
+- `tg_analysis.json` (optional — read opportunistically if produced by `analyze_telegram_chats.js`)
 
-**Output:** All files in `src/data/` directory  
-**Cost:** ~$2.00-4.00 per run (generates 5 complete data files)
+**Output:** `src/data/documentation.json` and `src/data/workflows.json`  
+**Cost:** ~$1-2 first run; near $0 on subsequent runs (per-batch fingerprint cache)
 
-Uses OpenAI with Zod schemas for structured output to generate production-ready data files.
+Uses NEAR AI to generate comprehensive documentation chunks and step-by-step workflows from the Q&A pairs.
 
-### `analyze_sdk.js` ⭐ NEW
+### `analyze_sdk.js` ⭐ RECOMMENDED
 
 **Input:** Clones from `https://github.com/OrderlyNetwork/js-sdk`  
 **Output:** `src/data/sdk-patterns.json` (enhanced)  
-**Cost:** FREE (no AI calls, pure code analysis)
+**Cost:** FREE in default mode (pure code analysis). ~$5-15 with `USE_AI=true` for AI enrichment.
 
 Directly parses the SDK source code to extract:
 
@@ -108,40 +169,32 @@ Directly parses the SDK source code to extract:
 
 **Why use this:** Provides more accurate, type-safe patterns than AI analysis alone. Always extracts the latest hook signatures directly from source.
 
-### `split_telegram_chats.js`
-
-**Input:** `result.json` (Telegram export)  
-**Output:** `telegram_chat_exports/*.json` (individual chat files)
-
-Splits large Telegram export into separate chat files with filtering.
-
 ## Cost Management
 
 Each analysis costs NEAR AI API credits:
 
-- **Telegram analysis:** ~$0.50-1.00
-- **Docs analysis:** ~$1.00-2.00
-- **Data generation:** ~$2.00-4.00
-- **Total per complete run:** ~$3.50-7.00
+- **Docs analysis:** ~$1-3 first run, ~$0 incremental
+- **Data generation:** ~$1-2 first run, ~$0 incremental
+- **Total per complete run:** ~$2-5 first time; near $0 on subsequent runs with no source changes
 
-\*\*Tips to save money:
+**Tips to save money:**
 
 1. Only re-run what's changed
 2. Use `MAX_FILES_TO_PROCESS` in scripts for testing
-3. Keep analysis files (tg_analysis.json, docs_analysis.json) - don't delete them
-4. Only run `generate_mcp_data.js` when analysis files are updated
+3. Keep `docs_analysis.json` — don't delete it (contains the cache)
+4. Only run `generate_mcp_data.js` when `docs_analysis.json` is updated
+5. Use `FORCE=true` only when you explicitly want full regeneration
 
 ## File Structure
 
 ```
 orderly-mcp/
-├── llms-full.txt                    # Downloaded docs
-├── telegram_chat_exports/
-│   ├── chat_Orderly_SDK.json
-│   └── chat_Orderly_Support.json
-├── tg_analysis.json                  # Generated (root level)
-├── docs_analysis.json                # Generated (root level)
-├── qa_analysis.json                  # ⚠️ DEPRECATED - do not use
+├── .temp-docs/                       # Auto-cloned documentation-public repo
+├── result.json                       # Telegram export input (provide manually)
+├── telegram_chats_filtered/          # Output of clean_telegram_export.js
+├── tg_analysis.json                  # Output of analyze_telegram_chats.js (optional)
+├── docs_analysis.json                # Output of analyze_docs.js (required)
+├── repo_analysis.json                # From analyze_example_repos.js (optional)
 └── src/data/
     ├── documentation.json            # Generated
     ├── sdk-patterns.json             # Generated
@@ -164,15 +217,15 @@ NEAR_AI_API_KEY=your-near-ai-api-key-here
 
 ## Troubleshooting
 
-**"Missing tg_analysis.json"**
-→ Run: `node scripts/analyze_chat_openai.js`
+**"Input file not found: result.json"** (clean_telegram_export.js)
+→ Place your Telegram Desktop export as `result.json` in project root, or set `INPUT=/path/to/export.json`
+
+**"Missing telegram_chats_filtered/"** (analyze_telegram_chats.js)
+→ Run: `node scripts/clean_telegram_export.js` first, then review + delete unwanted files
 
 **"Missing docs_analysis.json"**
-→ Run: `node scripts/analyze_llms_full.js`
+→ Run: `node scripts/analyze_docs.js`
 
 **"Low quality output"**
 → Check input analysis files have content
 → Re-run analysis scripts if needed
-
-**"Want to start over"**
-→ Run: `node scripts/reset_documentation.js`

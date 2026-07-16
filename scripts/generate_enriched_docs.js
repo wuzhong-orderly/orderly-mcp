@@ -23,6 +23,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
@@ -36,7 +37,8 @@ dotenv.config();
 
 // Configuration
 const USE_AI = process.env.USE_AI === 'true';
-const NEAR_AI_MODEL = 'zai-org/GLM-4.7';
+const FORCE = process.env.FORCE === 'true';
+const NEAR_AI_MODEL = 'qwen/qwen3.7-max';
 
 // Initialize OpenAI client (only if USE_AI is enabled)
 let openai;
@@ -44,6 +46,8 @@ if (USE_AI) {
   openai = new OpenAI({
     baseURL: 'https://cloud-api.near.ai/v1',
     apiKey: process.env.NEAR_AI_API_KEY || process.env.OPENAI_API_KEY,
+    timeout: parseInt(process.env.NEAR_AI_TIMEOUT_MS || String(30 * 60 * 1000), 10),
+    maxRetries: 0,
   });
 }
 
@@ -54,7 +58,7 @@ const DOCS_FILE = path.join(projectRoot, 'src/data/documentation.json');
 console.log('📝 Generating enriched documentation...\n');
 
 if (USE_AI) {
-  console.log('🤖 AI enhancement enabled\n');
+  console.log(`🤖 AI enhancement enabled ${FORCE ? '(FORCE)' : '(incremental)'}\n`);
 } else {
   console.log('ℹ️  AI enhancement disabled (set USE_AI=true to enable)\n');
 }
@@ -81,14 +85,71 @@ console.log(`   - Repo analysis: ${repoAnalysis.authentication.typescript.length
 console.log(`   - Helper functions: ${repoAnalysis.helperFunctions.length}`);
 console.log(`   - Patterns: ${repoAnalysis.implementationPatterns.length}\n`);
 
-// Track new chunks
+// ---------------------------------------------------------------------------
+// Caching helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Atomic JSON write — prevents mid-write corruption if killed.
+ */
+function atomicWriteJson(filePath, data) {
+  const tmp = `${filePath}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, filePath);
+}
+
+/**
+ * Hash a slice of repoAnalysis data so we can detect changes.
+ * Pass any JSON-serializable array/object.
+ */
+function computeSourceFingerprint(sourceData) {
+  return crypto.createHash('md5').update(JSON.stringify(sourceData)).digest('hex').substring(0, 12);
+}
+
+/**
+ * Load the source-fingerprint cache from existing docs. Returns {} if FORCE
+ * or missing.
+ */
+const sourceFingerprints = FORCE ? {} : existingDocs._enrichedFingerprints || {};
+if (Object.keys(sourceFingerprints).length > 0) {
+  console.log(`📦 Loaded ${Object.keys(sourceFingerprints).length} cached enriched-chunk fingerprints.\n`);
+}
+
+/**
+ * Returns true if the source slice's fingerprint matches the stored value
+ * for this sourceKey. Caller should return early to skip the AI call.
+ */
+function isCacheHit(sourceKey, fingerprint) {
+  return sourceFingerprints[sourceKey] === fingerprint;
+}
+
+/**
+ * Insert-or-update a chunk in the docs array by stable sourceKey. Replaces
+ * in place if found, appends otherwise. Fixes the prior "append-only" bug
+ * where running twice would duplicate every enriched chunk.
+ */
+function upsertChunk(newChunk) {
+  const idx = existingDocs.chunks.findIndex((c) => c.sourceKey === newChunk.sourceKey);
+  if (idx >= 0) {
+    existingDocs.chunks[idx] = newChunk;
+    console.log(`   📝 Replaced chunk for sourceKey=${newChunk.sourceKey}`);
+  } else {
+    existingDocs.chunks.push(newChunk);
+    console.log(`   ✅ Added chunk for sourceKey=${newChunk.sourceKey}`);
+  }
+  // Persist fingerprint + checkpoint
+  sourceFingerprints[newChunk.sourceKey] = newChunk.sourceFingerprint;
+}
+
+// Track new chunks (still useful for stats)
 const newChunks = [];
-let chunkId = existingDocs.chunks.length;
 
 // Helper to create a documentation chunk
-function createChunk(title, category, content, keywords) {
-  return {
-    id: `enriched-${chunkId++}`,
+function createChunk(title, category, content, keywords, sourceKey, sourceFingerprint) {
+  const chunk = {
+    id: `enriched-${sourceKey}`,
+    sourceKey,
+    sourceFingerprint,
     title,
     category,
     content,
@@ -98,6 +159,9 @@ function createChunk(title, category, content, keywords) {
       : 'Generated from example repositories',
     generatedAt: new Date().toISOString(),
   };
+  newChunks.push(chunk);
+  upsertChunk(chunk);
+  return chunk;
 }
 
 // AI enhancement helper
@@ -152,6 +216,13 @@ async function generateTSAuthChunk() {
 
   if (!authExample || !signerExample) {
     console.log('   ⚠️  Missing required examples, skipping');
+    return;
+  }
+
+  const sourceKey = 'ts-auth';
+  const sourceFingerprint = computeSourceFingerprint({ authExample, signerExample });
+  if (isCacheHit(sourceKey, sourceFingerprint)) {
+    console.log(`   ⏭️  Cache hit for ${sourceKey}, skipping`);
     return;
   }
 
@@ -220,17 +291,15 @@ ${authExample.content}
     );
   }
 
-  newChunks.push(
-    createChunk('Direct API Authentication (TypeScript)', 'API', content, [
-      'authentication',
-      'api',
-      'typescript',
-      'ed25519',
-      'signing',
-      'direct integration',
-      'backend',
-    ])
-  );
+  createChunk('Direct API Authentication (TypeScript)', 'API', content, [
+    'authentication',
+    'api',
+    'typescript',
+    'ed25519',
+    'signing',
+    'direct integration',
+    'backend',
+  ], sourceKey, sourceFingerprint);
 
   console.log('   ✅ Created');
 }
@@ -245,6 +314,13 @@ async function generateRegistrationChunk() {
 
   if (!regExample) {
     console.log('   ⚠️  Missing registerExample.ts, skipping');
+    return;
+  }
+
+  const sourceKey = 'registration';
+  const sourceFingerprint = computeSourceFingerprint(regExample);
+  if (isCacheHit(sourceKey, sourceFingerprint)) {
+    console.log(`   ⏭️  Cache hit for ${sourceKey}, skipping`);
     return;
   }
 
@@ -362,16 +438,14 @@ After registration, you need to create an Orderly key for API authentication. Se
     content = await enhanceWithAI(content, 'Account registration process using EIP-712 signing');
   }
 
-  newChunks.push(
-    createChunk('Account Registration with EIP-712', 'API', content, [
-      'registration',
-      'eip-712',
-      'authentication',
-      'account',
-      'wallet',
-      'signing',
-    ])
-  );
+  createChunk('Account Registration with EIP-712', 'API', content, [
+    'registration',
+    'eip-712',
+    'authentication',
+    'account',
+    'wallet',
+    'signing',
+  ], sourceKey, sourceFingerprint);
 
   console.log('   ✅ Created');
 }
@@ -386,6 +460,13 @@ async function generateOrderlyKeyChunk() {
 
   if (!keyExample) {
     console.log('   ⚠️  Missing orderlyKeyExample.ts, skipping');
+    return;
+  }
+
+  const sourceKey = 'orderly-key';
+  const sourceFingerprint = computeSourceFingerprint(keyExample);
+  if (isCacheHit(sourceKey, sourceFingerprint)) {
+    console.log(`   ⏭️  Cache hit for ${sourceKey}, skipping`);
     return;
   }
 
@@ -523,16 +604,14 @@ const response = await signAndSendRequest(
     content = await enhanceWithAI(content, 'Creating and managing Orderly API keys');
   }
 
-  newChunks.push(
-    createChunk('Creating Orderly Keys', 'API', content, [
-      'orderly key',
-      'ed25519',
-      'authentication',
-      'api key',
-      'key management',
-      'security',
-    ])
-  );
+  createChunk('Creating Orderly Keys', 'API', content, [
+    'orderly key',
+    'ed25519',
+    'authentication',
+    'api key',
+    'key management',
+    'security',
+  ], sourceKey, sourceFingerprint);
 
   console.log('   ✅ Created');
 }
@@ -543,6 +622,13 @@ async function generateMessageTypesChunk() {
 
   if (Object.keys(repoAnalysis.messageTypes).length === 0) {
     console.log('   ⚠️  No message types found in analysis, skipping');
+    return;
+  }
+
+  const sourceKey = 'message-types';
+  const sourceFingerprint = computeSourceFingerprint(repoAnalysis.messageTypes);
+  if (isCacheHit(sourceKey, sourceFingerprint)) {
+    console.log(`   ⏭️  Cache hit for ${sourceKey}, skipping`);
     return;
   }
 
@@ -612,15 +698,13 @@ const signature = await wallet.signTypedData(
     content = await enhanceWithAI(content, 'EIP-712 message types reference for Orderly Network');
   }
 
-  newChunks.push(
-    createChunk('EIP-712 Message Types Reference', 'API', content, [
-      'eip-712',
-      'message types',
-      'signing',
-      'reference',
-      'typed data',
-    ])
-  );
+  createChunk('EIP-712 Message Types Reference', 'API', content, [
+    'eip-712',
+    'message types',
+    'signing',
+    'reference',
+    'typed data',
+  ], sourceKey, sourceFingerprint);
 
   console.log('   ✅ Created');
 }
@@ -631,6 +715,13 @@ async function generatePatternsChunk() {
 
   if (repoAnalysis.implementationPatterns.length === 0) {
     console.log('   ⚠️  No patterns found, skipping');
+    return;
+  }
+
+  const sourceKey = 'patterns';
+  const sourceFingerprint = computeSourceFingerprint(repoAnalysis.implementationPatterns);
+  if (isCacheHit(sourceKey, sourceFingerprint)) {
+    console.log(`   ⏭️  Cache hit for ${sourceKey}, skipping`);
     return;
   }
 
@@ -669,15 +760,13 @@ ${pattern.description}
     );
   }
 
-  newChunks.push(
-    createChunk('Common Implementation Patterns', 'Overview', content, [
-      'patterns',
-      'implementation',
-      'workflow',
-      'architecture',
-      'integration',
-    ])
-  );
+  createChunk('Common Implementation Patterns', 'Overview', content, [
+    'patterns',
+    'implementation',
+    'workflow',
+    'architecture',
+    'integration',
+  ], sourceKey, sourceFingerprint);
 
   console.log('   ✅ Created');
 }
@@ -688,6 +777,13 @@ async function generatePythonChunk() {
 
   if (repoAnalysis.authentication.python.length === 0) {
     console.log('   ⚠️  No Python examples found, skipping');
+    return;
+  }
+
+  const sourceKey = 'python-auth';
+  const sourceFingerprint = computeSourceFingerprint(repoAnalysis.authentication.python);
+  if (isCacheHit(sourceKey, sourceFingerprint)) {
+    console.log(`   ⏭️  Cache hit for ${sourceKey}, skipping`);
     return;
   }
 
@@ -721,15 +817,13 @@ ${pyExample.content}
     content = await enhanceWithAI(content, 'Python API authentication examples');
   }
 
-  newChunks.push(
-    createChunk('Direct API Authentication (Python)', 'API', content, [
-      'python',
-      'authentication',
-      'api',
-      'backend',
-      'trading bot',
-    ])
-  );
+  createChunk('Direct API Authentication (Python)', 'API', content, [
+    'python',
+    'authentication',
+    'api',
+    'backend',
+    'trading bot',
+  ], sourceKey, sourceFingerprint);
 
   console.log('   ✅ Created');
 }
@@ -740,6 +834,13 @@ async function generateJavaChunk() {
 
   if (repoAnalysis.authentication.java.length === 0) {
     console.log('   ⚠️  No Java examples found, skipping');
+    return;
+  }
+
+  const sourceKey = 'java-auth';
+  const sourceFingerprint = computeSourceFingerprint(repoAnalysis.authentication.java);
+  if (isCacheHit(sourceKey, sourceFingerprint)) {
+    console.log(`   ⏭️  Cache hit for ${sourceKey}, skipping`);
     return;
   }
 
@@ -772,15 +873,13 @@ ${javaExample.content.substring(0, 2000)}${javaExample.content.length > 2000 ? '
     content = await enhanceWithAI(content, 'Java API authentication examples');
   }
 
-  newChunks.push(
-    createChunk('Direct API Authentication (Java)', 'API', content, [
-      'java',
-      'authentication',
-      'api',
-      'backend',
-      'enterprise',
-    ])
-  );
+  createChunk('Direct API Authentication (Java)', 'API', content, [
+    'java',
+    'authentication',
+    'api',
+    'backend',
+    'enterprise',
+  ], sourceKey, sourceFingerprint);
 
   console.log('   ✅ Created');
 }
@@ -796,43 +895,51 @@ async function main() {
   await generatePythonChunk();
   await generateJavaChunk();
 
-  console.log(`\n📊 Generated ${newChunks.length} new documentation chunks`);
+  console.log(`\n📊 Processed ${newChunks.length} documentation chunks this run`);
 
-  // Merge with existing docs
+  // existingDocs.chunks has already been mutated in-place by upsertChunk
+  // (replaces by sourceKey if exists, appends otherwise). This fixes the
+  // prior append-only bug where running twice would duplicate every chunk.
+  const previousTotal = existingDocs.chunks.length - newChunks.length;
   const enrichedDocs = {
     ...existingDocs,
-    chunks: [...existingDocs.chunks, ...newChunks],
+    chunks: existingDocs.chunks,
+    _enrichedFingerprints: sourceFingerprints,
     metadata: {
       ...existingDocs.metadata,
-      totalChunks: existingDocs.chunks.length + newChunks.length,
+      totalChunks: existingDocs.chunks.length,
       enrichedAt: new Date().toISOString(),
       enrichedFrom: USE_AI
-        ? 'OrderlyNetwork/examples and OrderlyNetwork/broker-registration repos (with AI enhancement)'
+        ? `OrderlyNetwork/examples and OrderlyNetwork/broker-registration repos (with AI enhancement${FORCE ? ', FORCE' : ''})`
         : 'OrderlyNetwork/examples and OrderlyNetwork/broker-registration repos',
       enrichmentStats: {
-        newChunks: newChunks.length,
-        previousTotal: existingDocs.chunks.length,
+        chunksThisRun: newChunks.length,
+        previousTotal: previousTotal < 0 ? 0 : previousTotal,
         aiEnhanced: USE_AI,
+        cache: {
+          hits: newChunks.length === 0 ? 'all cache hits' : 'see per-chunk logs',
+        },
       },
     },
   };
 
-  // Write enriched documentation
-  fs.writeFileSync(DOCS_FILE, JSON.stringify(enrichedDocs, null, 2));
+  // Atomic write
+  atomicWriteJson(DOCS_FILE, enrichedDocs);
 
   console.log('\n✅ Documentation enriched successfully!');
   console.log(`📄 Output: ${DOCS_FILE}`);
   console.log(`\nSummary:`);
-  console.log(`   - Previous chunks: ${existingDocs.chunks.length}`);
-  console.log(`   - New chunks: ${newChunks.length}`);
-  console.log(`   - Total chunks: ${enrichedDocs.metadata.totalChunks}`);
+  console.log(`   - Total chunks: ${existingDocs.chunks.length}`);
+  console.log(`   - Processed this run: ${newChunks.length}`);
   if (USE_AI) {
     console.log(`   - AI enhanced: Yes`);
   }
-  console.log(`\nNew chunks added:`);
-  newChunks.forEach((chunk) => {
-    console.log(`   - ${chunk.title} (${chunk.category})`);
-  });
+  if (newChunks.length > 0) {
+    console.log(`\nChunks processed this run:`);
+    newChunks.forEach((chunk) => {
+      console.log(`   - ${chunk.title} (${chunk.category}) [${chunk.sourceKey}]`);
+    });
+  }
   console.log('\nNext: Run generate_enriched_workflows.js to enhance workflows');
 }
 
