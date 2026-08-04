@@ -112,6 +112,16 @@ function getWsFuseInstance(): Fuse<WebSocketStream> {
 }
 
 export async function getApiInfo(type: string, endpoint?: string): Promise<ApiInfoResult> {
+  if (!type) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: "Missing required parameter: type. Must be 'rest', 'websocket', or 'auth'.",
+        },
+      ],
+    };
+  }
   const normalizedType = type.toLowerCase().trim();
   const data = apiData as ApiData;
 

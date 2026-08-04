@@ -28,8 +28,7 @@ This is a Model Context Protocol (MCP) server that provides Orderly Network docu
 
 **Tools** (`src/tools/*.ts`):
 
-- `searchDocs.ts` - Search documentation chunks
-- `sdkPatterns.ts` - Get SDK hook patterns
+- `searchDocs.ts` - Unified fuzzy search over `documentation.json` **and** type-accurate SDK symbols (`sdk-symbols.json`). A single `search_orderly_docs` tool surfaces doc chunks and inline hook/type/component/function records (signature, params, returns, props, source) from the js-sdk symbol bundle.
 - `contracts.ts` - Contract address lookup
 - `workflows.ts` - Workflow explanations
 - `apiInfo.ts` - API documentation
@@ -138,8 +137,7 @@ src/
 ├── http-server.ts              # HTTP transport (for hosted deployments)
 ├── server.ts                   # Shared MCP server logic (tools, resources, handlers)
 ├── tools/                      # Tool implementations
-│   ├── searchDocs.ts          # Doc search
-│   ├── sdkPatterns.ts         # SDK patterns
+│   ├── searchDocs.ts          # Unified doc + SDK symbol search
 │   ├── contracts.ts           # Contract lookup
 │   ├── workflows.ts           # Workflows
 │   ├── apiInfo.ts             # API info
@@ -152,7 +150,7 @@ src/
 │   └── index.ts               # Resource handlers
 ├── data/                       # Static data
 │   ├── documentation.json     # Searchable docs
-│   ├── sdk-patterns.json      # SDK patterns
+│   ├── sdk-symbols.json       # Type-accurate SDK symbols (hooks/types/components/functions)
 │   ├── contracts.json         # Contract addresses
 │   ├── workflows.json         # Workflows
 │   ├── api.json               # API docs
@@ -324,7 +322,7 @@ Processes official documentation to extract structured Q&A.
 - `tg_analysis.json` (optional — read opportunistically if produced by `analyze_telegram_chats.js`)
 
 **Output:** `src/data/documentation.json` and `src/data/workflows.json` only.  
-(Other data files have dedicated generators: `analyze_sdk.js` → `sdk-patterns.json`, `generate_api_from_openapi.js` → `api.json`, etc.)
+(Other data files have dedicated generators: `generate_sdk_symbols.js` → `sdk-symbols.json`, `analyze_sdk.js` → `component-guides.json`, `generate_api_from_openapi.js` → `api.json`, etc.)
 
 **API:** NEAR AI Cloud, Model: `qwen/qwen3.7-max`
 **Cost:** 💰 costs money (incremental: each Q&A batch is content-fingerprinted; cache hits skip AI calls)
@@ -335,140 +333,42 @@ Processes official documentation to extract structured Q&A.
 
 **Force mode:** `FORCE=true node scripts/generate_mcp_data.js` re-processes every batch.
 
-#### `scripts/analyze_sdk.js` ⭐ **NEW & RECOMMENDED**
+#### `scripts/generate_sdk_symbols.js` ⭐ **RECOMMENDED — SDK symbols**
 
-**Purpose:** Extract SDK patterns directly from source code  
-**Input:** Clones from `https://github.com/OrderlyNetwork/js-sdk`  
-**Output:** `src/data/sdk-patterns.json` (enhanced with real types)  
-**Cost:** 🆓 free (no AI calls, pure code analysis)
+**Purpose:** Pull the type-accurate SDK symbol bundle (hooks/types/components/functions) from the published `@orderly.network/sdk-docs` npm package and flatten it into a Fuse-friendly `src/data/sdk-symbols.json`. These symbols are indexed by the unified `search_orderly_docs` tool and surfaced inline (signature, params, returns, props, source path).
+**Input:** npm registry — `@orderly.network/sdk-docs` tarball `bundled/json/*.json` (produced upstream by js-sdk's `apps/ai-docs` TS-Compiler pipeline).
+**Output:** `src/data/sdk-symbols.json` (deduped by id; hooks always kept; types/components/functions kept when documented).
+**Cost:** 🆓 free (no AI calls, no native builds; downloads the ~720 KB tarball and parses JSON).
 
-**What it extracts:**
+**Why this is the SDK symbol source:**
 
-- Hook implementations (useOrderEntry, usePositionStream, etc.)
-- Component props and interfaces
-- Type definitions (enums, interfaces)
-- Real working code patterns
-- Return types and parameters
-
-**Why this is better:**
-
-- Always type-accurate (parses actual TypeScript)
+- Always type-accurate (parses actual TypeScript upstream via the official ai-docs pipeline)
 - No hallucination (real code, not AI guesses)
-- Always up-to-date (clones latest SDK)
-- FREE (no API costs)
+- Always up-to-date (`npm pack` pulls the latest published bundle)
+- FREE (no API costs, no `better-sqlite3`/`node-llama-cpp` native deps)
+- Zero new runtime deps — consumed as data, not as a package
 
 **Usage:**
 
 ```bash
-# This enhances sdk-patterns.json with real SDK data
-node scripts/analyze_sdk.js
+node scripts/generate_sdk_symbols.js
+# Pin a specific version:
+SDK_DOCS_VERSION=1.1.7 node scripts/generate_sdk_symbols.js
 ```
 
-#### `scripts/analyze_example_dex.js` ⭐ **NEW - DEX Examples**
+Wired into `yarn update:free`.
 
-**Purpose:** Extract chart and DEX component examples from example-dex repo  
-**Input:** Clones from `https://github.com/OrderlyNetwork/example-dex`  
-**Output:** `example_dex_analysis.json` (root level)  
+#### `scripts/analyze_sdk.js`
+
+**Purpose:** Extract component-building guides directly from SDK source code
+**Input:** Clones from `https://github.com/OrderlyNetwork/js-sdk`
+**Output:** `src/data/component-guides.json` (consumed by `get_component_guide`; also feeds `orderly://sdk/components`, which merges these guides with type-accurate symbols from `sdk-symbols.json`). Also historically wrote `src/data/sdk-patterns.json`; that file is **superseded and unused** — SDK symbol lookup now flows through `sdk-symbols.json` (see `generate_sdk_symbols.js` above). Do not rely on the `sdk-patterns.json` byproduct.
 **Cost:** 🆓 free (no AI calls, pure code analysis)
 
-**What it extracts:**
-
-- **Chart implementations:**
-  - Lightweight Charts integration (custom candlestick charts)
-  - TradingView widget setup
-  - WebSocket kline data service
-- **Trading components:**
-  - Order entry forms (market/limit/stop/bracket)
-  - Orderbook display with depth visualization
-  - Symbol selection and headers
-- **Position components:**
-  - Position table with PnL
-  - Position update/close modals
-- **Order components:**
-  - Pending orders list
-  - Take Profit / Stop Loss orders
-- **Wallet components:**
-  - Multi-chain wallet connection (EVM + Solana)
-  - Connection dropdowns
-- **Account components:**
-  - Assets/balance display
-  - Deposit/withdraw UI
-  - Leverage management
-
-**Why this is useful:**
-
-- Real working DEX code examples
-- Complete component implementations
-- Chart integration patterns
-- WebSocket data handling
-- FREE (no API costs)
-
 **Usage:**
 
 ```bash
-# 1. Clone the example-dex repo
- git clone --depth 1 https://github.com/orderlynetwork/example-dex.git /tmp/example-dex
-
-# 2. Analyze and extract patterns
-node scripts/analyze_example_dex.js
-
-# 3. Merge into SDK patterns
-node scripts/enrich_sdk_patterns_with_examples.js
-```
-
-#### `scripts/enrich_sdk_patterns_with_examples.js`
-
-**Purpose:** Merge example-dex analysis into sdk-patterns.json  
-**Input:** `example_dex_analysis.json`  
-**Output:** Updated `src/data/sdk-patterns.json`  
-**Cost:** 🆓 free (or opt-in AI mode with `USE_AI=true`)
-
-Adds real-world code examples from the example-dex repository to the SDK patterns data, making them available via the MCP server.
-
-**Two modes:**
-
-1. **Basic Mode** (default): Direct code copying with truncation
-2. **AI-Enhanced Mode**: Intelligent code analysis and documentation generation
-
-**What AI adds:**
-
-- **Intelligent code analysis** - Extracts key patterns from full files
-- **Enhanced documentation** - Clear explanations and usage guides
-- **Educational code snippets** - Focused examples (not truncated)
-- **Troubleshooting tips** - Common issues and solutions
-- **Cross-referencing** - Links related patterns together
-- **Difficulty assessment** - Tags beginner/intermediate/advanced
-- **Prerequisites** - Lists what you need to know first
-
-**Usage:**
-
-```bash
-# Basic mode (FREE)
-node scripts/enrich_sdk_patterns_with_examples.js
-
-# AI-enhanced mode (~$1-3)
-USE_AI=true node scripts/enrich_sdk_patterns_with_examples.js
-```
-
-**Recommended workflow:**
-
-```bash
-# 1. Get SDK patterns (FREE and accurate)
 node scripts/analyze_sdk.js
-
-# 2. Get DEX examples (choose mode)
-node scripts/analyze_example_dex.js
-node scripts/enrich_sdk_patterns_with_examples.js  # Basic
-# USE_AI=true node scripts/enrich_sdk_patterns_with_examples.js  # AI-enhanced
-
-# 3. Analyze docs for API details (paid)
-node scripts/analyze_docs.js
-
-# 4. Generate everything
-node scripts/generate_mcp_data.js
-
-# 5. Build and test
-yarn build && yarn test:run
 ```
 
 #### `scripts/generate_api_from_openapi.js`
@@ -586,9 +486,8 @@ ORDERLY_DOCS_DIR=/path/to/docs node scripts/generate_public_info_api.js
 **Free scripts** (no API keys, no AI calls):
 
 - `clean_telegram_export.js` — 🆓 free (pure JSON streaming)
-- `analyze_sdk.js` — 🆓 free (clones SDK from GitHub)
-- `analyze_example_dex.js` — 🆓 free (clones example-dex from GitHub)
-- `enrich_sdk_patterns_with_examples.js` — 🆓 free (opt-in AI with `USE_AI=true`)
+- `generate_sdk_symbols.js` — 🆓 free (npm tarball pull + JSON parse; SDK symbol source)
+- `analyze_sdk.js` — 🆓 free (clones SDK from GitHub; produces `component-guides.json`)
 - `generate_api_from_openapi.js` — 🆓 free
 - `generate_indexer_api.js` — 🆓 free
 - `generate_sv_api.js` — 🆓 free
@@ -598,7 +497,7 @@ ORDERLY_DOCS_DIR=/path/to/docs node scripts/generate_public_info_api.js
 
 **Money-saving tips:**
 
-1. Use `analyze_sdk.js` first for SDK patterns — it's 🆓 free and provides type-accurate results
+1. Use `generate_sdk_symbols.js` for type-accurate SDK symbols — it's 🆓 free and pulls real TypeScript-extracted data
 2. Keep `tg_analysis.json` and `docs_analysis.json` — don't delete them (they contain the cache)
 3. Only re-run analysis if source data changes
 4. Use `MAX_FILES_TO_PROCESS` in scripts for testing
@@ -647,7 +546,7 @@ get_indexer_api_info
 ```
 get_indexer_api_info category="trading_metrics"
 get_indexer_api_info category="events"
-get_indexer_api_info category="ranking"
+get_indexer_api_info category="trades::trades_api"
 ```
 
 **3. Get specific endpoint details:**
@@ -670,7 +569,7 @@ get_indexer_api_info endpoint="ranking/positions"
 
 **For Leaderboards:**
 
-- Top traders by PnL, volume, positions → `category="ranking"`
+- Top traders by PnL, volume, positions → `endpoint="ranking/positions"`, `endpoint="ranking/realized_pnl"`, `endpoint="ranking/trading_volume"` (no category — search ranking endpoints directly)
 
 **For Volume Stats:**
 

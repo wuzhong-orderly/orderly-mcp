@@ -110,10 +110,12 @@ function parseResourceUri(uri: string): {
 function formatSearchResults<T extends SearchableItem>(
   result: SearchResult<T>,
   resourceName: string,
-  formatItem: (item: T) => string
+  formatItem: (item: T) => string,
+  query?: string
 ): string {
   if (result.items.length === 0) {
-    return `# ${resourceName} Search Results\n\nNo results found. Please provide a search query using ?search=your-query`;
+    const queryClause = query ? ` for query "${query}"` : '';
+    return `# ${resourceName} Search Results\n\nNo results found${queryClause}. Try a different search query, or access the full resource without ?search=.`;
   }
 
   let text = `# ${resourceName} Search Results\n\n`;
@@ -171,21 +173,52 @@ export async function getResource(uri: string) {
       }
 
       case 'orderly://sdk/hooks': {
-        const patterns = JSON.parse(
-          fs.readFileSync(path.join(dataDir, 'sdk-patterns.json'), 'utf-8')
-        );
+        // Backed by the type-accurate SDK symbol bundle (see
+        // scripts/generate_sdk_symbols.js) rather than the legacy curated
+        // sdk-patterns.json. Exposes only hooks here; the search_orderly_docs
+        // tool returns full inline records for hooks/types/components/functions.
+        const bundle = JSON.parse(fs.readFileSync(path.join(dataDir, 'sdk-symbols.json'), 'utf-8'));
+        const meta = bundle.metadata || {};
+
+        const allHooks: Array<{
+          id: string;
+          name: string;
+          package: string;
+          sourcePath: string;
+          description: string;
+          returns?: string;
+        }> = (bundle.symbols || [])
+          .filter((s: { kind: string }) => s.kind === 'hook')
+          .map(
+            (s: {
+              id: string;
+              name: string;
+              package: string;
+              sourcePath: string;
+              record: { jsDoc?: string; returns?: string };
+            }) => ({
+              id: s.id,
+              name: s.name,
+              package: s.package,
+              sourcePath: s.sourcePath,
+              description: s.record?.jsDoc || '',
+              returns: s.record?.returns,
+            })
+          );
 
         if (!searchQuery) {
+          const byPackage = new Map<string, number>();
+          for (const h of allHooks) byPackage.set(h.package, (byPackage.get(h.package) || 0) + 1);
+
           let text = '# SDK Hooks Reference\n\n';
-          text += `This resource contains ${patterns.stats.totalHooks} hooks organized into ${patterns.stats.totalCategories} categories.\n\n`;
-          text += '## Available Categories\n\n';
-
-          for (const category of patterns.categories.slice(0, 10)) {
-            text += `- **${category.name}**: ${category.patterns.length} hooks\n`;
-          }
-
-          if (patterns.categories.length > 10) {
-            text += `- ... and ${patterns.categories.length - 10} more categories\n`;
+          text += `Type-accurate hooks extracted from the Orderly JS SDK `;
+          text += `(\`${meta.sourcePackage || '@orderly.network/sdk-docs'}\`@${
+            meta.sourceVersion || 'n/a'
+          }, git \`${String(meta.gitSha || '').slice(0, 10)}\`).\n\n`;
+          text += `**${allHooks.length} hooks** across ${byPackage.size} packages.\n\n`;
+          text += '## Hooks by Package\n\n';
+          for (const [pkg, count] of [...byPackage.entries()].sort((a, b) => b[1] - a[1])) {
+            text += `- **${pkg}**: ${count} hooks\n`;
           }
 
           text += '\n## How to Search\n\n';
@@ -193,13 +226,15 @@ export async function getResource(uri: string) {
           text += '```\n';
           text += 'orderly://sdk/hooks?search=useOrderEntry\n';
           text += 'orderly://sdk/hooks?search=position\n';
-          text += 'orderly://sdk/hooks?search=wallet%20connection\n';
+          text += 'orderly://sdk/hooks?search=wallet\n';
           text += '```\n\n';
           text += '**Search supports:**\n';
           text += '- Hook names (e.g., `useOrderEntry`)\n';
           text += '- Partial matches (e.g., `order` matches `useOrderEntry`)\n';
-          text += '- Categories (e.g., `General`, `Trading`)\n';
-          text += '- Descriptions and usage patterns\n\n';
+          text += '- Package names and docblocks\n\n';
+          text +=
+            '**Tip:** For full signatures, params, returns, and source provenance, call the\n' +
+            '`search_orderly_docs` tool with a hook name — it returns the complete record inline.\n\n';
           text += '**Pagination:**\n';
           text += '- Use `?page=2` to see more results\n';
           text += '- Use `?limit=5` to change results per page (max 10)\n';
@@ -215,45 +250,33 @@ export async function getResource(uri: string) {
           };
         }
 
-        const allHooks: Array<{
-          id: string;
-          name: string;
-          description: string;
-          category: string;
-          usage?: string;
-        }> = [];
-
-        for (const category of patterns.categories) {
-          for (const pattern of category.patterns) {
-            allHooks.push({
-              id: pattern.name,
-              name: pattern.name,
-              description: pattern.description,
-              category: category.name,
-              usage: pattern.usage,
-            });
-          }
-        }
-
         const fuse = createFuseSearch(allHooks, [
-          { name: 'name', weight: 0.4 },
+          { name: 'name', weight: 0.5 },
           { name: 'description', weight: 0.3 },
-          { name: 'category', weight: 0.2 },
-          { name: 'usage', weight: 0.1 },
+          { name: 'package', weight: 0.2 },
         ]);
 
         const result = searchWithPagination(fuse, { query: searchQuery, page, limit });
 
-        const text = formatSearchResults(result, 'SDK Hooks', (item) => {
-          let itemText = `## ${item.name}\n\n`;
-          itemText += `**Category:** ${item.category}\n\n`;
-          itemText += `${item.description}\n\n`;
-          if (item.usage) {
-            itemText += `**Usage:** ${item.usage}\n\n`;
-          }
-          itemText += '---\n';
-          return itemText;
-        });
+        const text = formatSearchResults(
+          result,
+          'SDK Hooks',
+          (item) => {
+            let itemText = `## ${item.name}\n\n`;
+            itemText += `**Package:** ${item.package}`;
+            if (item.sourcePath) itemText += ` · **Source:** \`${item.sourcePath}\``;
+            itemText += '\n\n';
+            if (item.description) {
+              itemText += `${item.description.split('\n')[0]}\n\n`;
+            }
+            if (item.returns) {
+              itemText += `**Returns:** \`${item.returns}\`\n\n`;
+            }
+            itemText += '---\n';
+            return itemText;
+          },
+          searchQuery
+        );
 
         return {
           contents: [
@@ -270,19 +293,62 @@ export async function getResource(uri: string) {
         const guides = JSON.parse(
           fs.readFileSync(path.join(dataDir, 'component-guides.json'), 'utf-8')
         );
+        const bundle = JSON.parse(fs.readFileSync(path.join(dataDir, 'sdk-symbols.json'), 'utf-8'));
+        const meta = bundle.metadata || {};
+
+        const guideNames = new Set<string>(guides.components.map((c: { name: string }) => c.name));
+
+        const allComponents: Array<{
+          id: string;
+          name: string;
+          description: string;
+          keyHooks: string[];
+          package?: string;
+          sourcePath?: string;
+        }> = [];
+
+        for (const component of guides.components) {
+          allComponents.push({
+            id: component.name,
+            name: component.name,
+            description: component.description,
+            keyHooks: component.keyHooks,
+          });
+        }
+
+        for (const s of bundle.symbols || []) {
+          if (s.kind !== 'component') continue;
+          if (guideNames.has(s.name)) continue;
+          allComponents.push({
+            id: s.id,
+            name: s.name,
+            description: s.record?.jsDoc || s.record?.displayName || '',
+            keyHooks: [],
+            package: s.package,
+            sourcePath: s.sourcePath,
+          });
+        }
 
         if (!searchQuery) {
-          let text = '# Component Building Guides\n\n';
-          text += `This resource contains ${guides.components.length} UI components with implementation examples.\n\n`;
+          const withGuides = guides.components.length;
+          const symbolOnly = allComponents.length - withGuides;
+
+          let text = '# SDK Components Reference\n\n';
+          text += 'Type-accurate components extracted from the Orderly JS SDK ';
+          text += `(\`${meta.sourcePackage || '@orderly.network/sdk-docs'}\`@${
+            meta.sourceVersion || 'n/a'
+          }, git \`${String(meta.gitSha || '').slice(0, 10)}\`).\n\n`;
+          text += `**${allComponents.length} components**: ${withGuides} with building guides, ${symbolOnly} type-accurate symbol-only.\n\n`;
           text += '## Sample Components\n\n';
 
-          const sampleComponents = guides.components.slice(0, 15);
+          const sampleComponents = allComponents.slice(0, 15);
           for (const component of sampleComponents) {
-            text += `- **${component.name}**: ${component.description.substring(0, 80)}...\n`;
+            const pkg = component.package ? ` (\`${component.package}\`)` : '';
+            text += `- **${component.name}**: ${component.description.substring(0, 80)}...${pkg}\n`;
           }
 
-          if (guides.components.length > 15) {
-            text += `- ... and ${guides.components.length - 15} more components\n`;
+          if (allComponents.length > 15) {
+            text += `- ... and ${allComponents.length - 15} more components\n`;
           }
 
           text += '\n## How to Search\n\n';
@@ -290,13 +356,13 @@ export async function getResource(uri: string) {
           text += '```\n';
           text += 'orderly://sdk/components?search=Checkbox\n';
           text += 'orderly://sdk/components?search=order%20entry\n';
-          text += 'orderly://sdk/components?search=button\n';
+          text += 'orderly://sdk/components?search=OrderlyAppProvider\n';
           text += '```\n\n';
           text += '**Search supports:**\n';
           text += '- Component names (e.g., `OrderEntry`)\n';
           text += '- Partial matches (e.g., `check` matches `Checkbox`)\n';
           text += '- Related hooks (e.g., `useOrderEntry`)\n';
-          text += '- Descriptions\n\n';
+          text += '- Package names, source paths, and docblocks\n\n';
           text += '**Pagination:**\n';
           text += '- Use `?page=2` to see more results\n';
           text += '- Use `?limit=5` to change results per page (max 10)\n';
@@ -312,39 +378,34 @@ export async function getResource(uri: string) {
           };
         }
 
-        const allComponents: Array<{
-          id: string;
-          name: string;
-          description: string;
-          keyHooks: string[];
-        }> = [];
-
-        for (const component of guides.components) {
-          allComponents.push({
-            id: component.name,
-            name: component.name,
-            description: component.description,
-            keyHooks: component.keyHooks,
-          });
-        }
-
         const fuse = createFuseSearch(allComponents, [
           { name: 'name', weight: 0.4 },
           { name: 'description', weight: 0.3 },
-          { name: 'keyHooks', weight: 0.3 },
+          { name: 'keyHooks', weight: 0.2 },
+          { name: 'package', weight: 0.1 },
         ]);
 
         const result = searchWithPagination(fuse, { query: searchQuery, page, limit });
 
-        const text = formatSearchResults(result, 'Component Guides', (item) => {
-          let itemText = `## ${item.name}\n\n`;
-          itemText += `${item.description}\n\n`;
-          if (item.keyHooks.length > 0) {
-            itemText += `**Key Hooks:** ${item.keyHooks.join(', ')}\n\n`;
-          }
-          itemText += '---\n';
-          return itemText;
-        });
+        const text = formatSearchResults(
+          result,
+          'SDK Components',
+          (item) => {
+            let itemText = `## ${item.name}\n\n`;
+            if (item.package) {
+              itemText += `**Package:** ${item.package}`;
+              if (item.sourcePath) itemText += ` · **Source:** \`${item.sourcePath}\``;
+              itemText += '\n\n';
+            }
+            itemText += `${item.description}\n\n`;
+            if (item.keyHooks.length > 0) {
+              itemText += `**Key Hooks:** ${item.keyHooks.join(', ')}\n\n`;
+            }
+            itemText += '---\n';
+            return itemText;
+          },
+          searchQuery
+        );
 
         return {
           contents: [
@@ -445,22 +506,27 @@ export async function getResource(uri: string) {
 
         const result = searchWithPagination(fuse, { query: searchQuery, page, limit });
 
-        const text = formatSearchResults(result, 'Workflows', (item) => {
-          let itemText = `## ${item.name}\n\n`;
-          itemText += `${item.description}\n\n`;
-          if (item.steps.length > 0) {
-            itemText += '**Steps:**\n';
-            for (const step of item.steps.slice(0, 3)) {
-              itemText += `- ${step.title}\n`;
+        const text = formatSearchResults(
+          result,
+          'Workflows',
+          (item) => {
+            let itemText = `## ${item.name}\n\n`;
+            itemText += `${item.description}\n\n`;
+            if (item.steps.length > 0) {
+              itemText += '**Steps:**\n';
+              for (const step of item.steps.slice(0, 3)) {
+                itemText += `- ${step.title}\n`;
+              }
+              if (item.steps.length > 3) {
+                itemText += `- ... and ${item.steps.length - 3} more\n`;
+              }
+              itemText += '\n';
             }
-            if (item.steps.length > 3) {
-              itemText += `- ... and ${item.steps.length - 3} more\n`;
-            }
-            itemText += '\n';
-          }
-          itemText += '---\n';
-          return itemText;
-        });
+            itemText += '---\n';
+            return itemText;
+          },
+          searchQuery
+        );
 
         return {
           contents: [
@@ -558,15 +624,20 @@ export async function getResource(uri: string) {
 
         const result = searchWithPagination(fuse, { query: searchQuery, page, limit });
 
-        const text = formatSearchResults(result, 'REST API Endpoints', (item) => {
-          let itemText = `### ${item.method} ${item.path}\n\n`;
-          itemText += `${item.description}\n\n`;
-          if (item.auth) {
-            itemText += '🔒 Requires authentication\n\n';
-          }
-          itemText += '---\n';
-          return itemText;
-        });
+        const text = formatSearchResults(
+          result,
+          'REST API Endpoints',
+          (item) => {
+            let itemText = `### ${item.method} ${item.path}\n\n`;
+            itemText += `${item.description}\n\n`;
+            if (item.auth) {
+              itemText += '🔒 Requires authentication\n\n';
+            }
+            itemText += '---\n';
+            return itemText;
+          },
+          searchQuery
+        );
 
         return {
           contents: [
@@ -651,16 +722,21 @@ export async function getResource(uri: string) {
 
         const result = searchWithPagination(fuse, { query: searchQuery, page, limit });
 
-        const text = formatSearchResults(result, 'WebSocket Streams', (item) => {
-          let itemText = `### ${item.name}\n\n`;
-          itemText += `**Topic:** ${item.topic}\n\n`;
-          itemText += `${item.description}\n\n`;
-          if (item.auth) {
-            itemText += '🔒 Requires authentication\n\n';
-          }
-          itemText += '---\n';
-          return itemText;
-        });
+        const text = formatSearchResults(
+          result,
+          'WebSocket Streams',
+          (item) => {
+            let itemText = `### ${item.name}\n\n`;
+            itemText += `**Topic:** ${item.topic}\n\n`;
+            itemText += `${item.description}\n\n`;
+            if (item.auth) {
+              itemText += '🔒 Requires authentication\n\n';
+            }
+            itemText += '---\n';
+            return itemText;
+          },
+          searchQuery
+        );
 
         return {
           contents: [
@@ -757,15 +833,20 @@ export async function getResource(uri: string) {
 
         const result = searchWithPagination(fuse, { query: searchQuery, page, limit });
 
-        const text = formatSearchResults(result, 'Indexer API Endpoints', (item) => {
-          let itemText = `### ${item.method} ${item.path}\n\n`;
-          itemText += `**${item.summary}**\n\n`;
-          if (item.description) {
-            itemText += `${item.description}\n\n`;
-          }
-          itemText += '---\n';
-          return itemText;
-        });
+        const text = formatSearchResults(
+          result,
+          'Indexer API Endpoints',
+          (item) => {
+            let itemText = `### ${item.method} ${item.path}\n\n`;
+            itemText += `**${item.summary}**\n\n`;
+            if (item.description) {
+              itemText += `${item.description}\n\n`;
+            }
+            itemText += '---\n';
+            return itemText;
+          },
+          searchQuery
+        );
 
         return {
           contents: [
@@ -856,12 +937,17 @@ export async function getResource(uri: string) {
 
         const result = searchWithPagination(fuse, { query: searchQuery, page, limit });
 
-        const text = formatSearchResults(result, 'Public Info API Query Types', (item) => {
-          let itemText = `## ${item.id}\n\n`;
-          itemText += `**${item.name}** · category: ${item.category} · weight: ${item.weight ?? '?'}\n\n`;
-          itemText += `${item.description}\n\n---\n`;
-          return itemText;
-        });
+        const text = formatSearchResults(
+          result,
+          'Public Info API Query Types',
+          (item) => {
+            let itemText = `## ${item.id}\n\n`;
+            itemText += `**${item.name}** · category: ${item.category} · weight: ${item.weight ?? '?'}\n\n`;
+            itemText += `${item.description}\n\n---\n`;
+            return itemText;
+          },
+          searchQuery
+        );
 
         return {
           contents: [

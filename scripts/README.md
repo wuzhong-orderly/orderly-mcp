@@ -45,15 +45,21 @@ too-short messages dropped) and written as a plain-text chat log with a header
 (chat name, filter date, drop stats) + transcript body — so manual review is
 fast and the analyzer just sends the .txt to the AI as-is.
 
-**C. Analyze SDK Source Code (Optional but Recommended)**
+**C. Get SDK Symbols + Component Guides (Optional but Recommended)**
 
 ```bash
-# Clone and analyze SDK for better patterns
+# Type-accurate SDK symbols (hooks/types/components/functions) from npm — 🆓 free
+node scripts/generate_sdk_symbols.js
+# Output: src/data/sdk-symbols.json
+
+# Component-building guides from SDK source — 🆓 free
 node scripts/analyze_sdk.js
-# Output: src/data/sdk-patterns.json (enhanced)
+# Output: src/data/component-guides.json
 ```
 
-This extracts real hook implementations, component props, and type definitions directly from the SDK source code.
+`generate_sdk_symbols.js` pulls the type-accurate symbol bundle published by the js-sdk
+`apps/ai-docs` pipeline and flattens it for fuzzy search. `analyze_sdk.js` extracts
+component-building guides directly from the SDK source tree.
 
 ### Step 2: Generate All Data Files
 
@@ -65,7 +71,7 @@ node scripts/generate_mcp_data.js
 This creates:
 
 - `src/data/documentation.json` - Searchable documentation
-- `src/data/sdk-patterns.json` - SDK hook patterns
+- `src/data/sdk-symbols.json` - Type-accurate SDK symbols (hooks/types/components/functions)
 - `src/data/workflows.json` - Step-by-step workflows
 - `src/data/api.json` - API endpoint docs
 - `src/data/component-guides.json` - Component building guides
@@ -154,20 +160,27 @@ Processes official Orderly documentation to extract structured Q&A. Per-file fin
 
 Uses NEAR AI to generate comprehensive documentation chunks and step-by-step workflows from the Q&A pairs.
 
-### `analyze_sdk.js` ⭐ RECOMMENDED
+### `generate_sdk_symbols.js` ⭐ RECOMMENDED (SDK symbols)
 
-**Input:** Clones from `https://github.com/OrderlyNetwork/js-sdk`  
-**Output:** `src/data/sdk-patterns.json` (enhanced)  
-**Cost:** FREE in default mode (pure code analysis). ~$5-15 with `USE_AI=true` for AI enrichment.
+**Input:** `@orderly.network/sdk-docs` npm tarball (`bundled/json/*.json`)
+**Output:** `src/data/sdk-symbols.json`
+**Cost:** 🆓 FREE (npm pull + JSON parse, no AI, no native builds)
 
-Directly parses the SDK source code to extract:
+Pulls the type-accurate SDK symbol bundle (hooks, types, components, functions) produced
+upstream by the js-sdk `apps/ai-docs` TS-Compiler pipeline, and flattens it into a
+Fuse-friendly index consumed by `search_orderly_docs`. Hooks are always kept; types,
+components, and functions are kept when documented.
 
-- Hook implementations and return types
-- Component props and interfaces
-- Type definitions (enums, interfaces)
-- Real code patterns from the SDK
+### `analyze_sdk.js`
 
-**Why use this:** Provides more accurate, type-safe patterns than AI analysis alone. Always extracts the latest hook signatures directly from source.
+**Input:** Clones from `https://github.com/OrderlyNetwork/js-sdk`
+**Output:** `src/data/component-guides.json`
+**Cost:** 🆓 FREE (pure code analysis)
+
+Parses the SDK source tree to extract component-building guides (required packages, key
+hooks, variants). Note: this script also historically wrote `src/data/sdk-patterns.json`,
+which is now **superseded** — SDK symbol lookup flows through `sdk-symbols.json` (see
+`generate_sdk_symbols.js` above).
 
 ## Cost Management
 
@@ -197,10 +210,10 @@ orderly-mcp/
 ├── repo_analysis.json                # From analyze_example_repos.js (optional)
 └── src/data/
     ├── documentation.json            # Generated
-    ├── sdk-patterns.json             # Generated
+    ├── sdk-symbols.json              # Generated (generate_sdk_symbols.js)
     ├── workflows.json                # Generated
     ├── api.json                      # Generated
-    └── component-guides.json         # Generated
+    └── component-guides.json         # Generated (analyze_sdk.js)
 ```
 
 ## Environment Setup

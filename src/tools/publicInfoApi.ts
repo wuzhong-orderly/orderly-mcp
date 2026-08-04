@@ -139,10 +139,11 @@ function findQueryType(queryType: string): QueryType | null {
 }
 
 function findCategory(name: string): Category | null {
-  const needle = name.toLowerCase().trim();
+  const normalize = (s: string) => s.toLowerCase().trim().replace(/[_-]+/g, ' ');
+  const needle = normalize(name);
   return (
     data.categories.find(
-      (c) => c.name.toLowerCase() === needle || c.title.toLowerCase().includes(needle)
+      (c) => normalize(c.name) === needle || normalize(c.title).includes(needle)
     ) || null
   );
 }

@@ -6,7 +6,6 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { searchOrderlyDocs } from './tools/searchDocs.js';
-import { getSdkPattern } from './tools/sdkPatterns.js';
 import { getContractAddresses } from './tools/contracts.js';
 import { explainWorkflow } from './tools/workflows.js';
 import { getApiInfo } from './tools/apiInfo.js';
@@ -59,28 +58,15 @@ export function createMcpServer(): Server {
                 description: 'Maximum number of results to return (default: 5)',
                 default: 5,
               },
+              scope: {
+                type: 'string',
+                enum: ['auto', 'docs', 'sdk'],
+                description:
+                  "Which corpus to search: 'sdk' for type-accurate SDK symbols (hooks/components/types/functions), 'docs' for protocol documentation, or 'auto' (default) which detects intent from the query (camelCase/use* names → SDK, plain language → docs)",
+                default: 'auto',
+              },
             },
             required: ['query'],
-          },
-        },
-        {
-          name: 'get_sdk_pattern',
-          description: 'Get code examples and patterns for Orderly SDK v2 hooks and utilities',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              pattern: {
-                type: 'string',
-                description:
-                  "Pattern or hook name (e.g., 'useOrderEntry', 'usePositionStream', 'WalletConnectorWidget')",
-              },
-              includeExample: {
-                type: 'boolean',
-                description: 'Include full code example (default: true)',
-                default: true,
-              },
-            },
-            required: ['pattern'],
           },
         },
         {
@@ -146,7 +132,7 @@ export function createMcpServer(): Server {
         {
           name: 'get_indexer_api_info',
           description:
-            'Get information about Orderly Indexer API for trading metrics, account events, volume statistics, and rankings',
+            'Get information about Orderly Indexer API for trading metrics, account events, trades, and volume statistics (rankings endpoints available via endpoint search)',
           inputSchema: {
             type: 'object',
             properties: {
@@ -158,7 +144,7 @@ export function createMcpServer(): Server {
               category: {
                 type: 'string',
                 description:
-                  "Filter by category (e.g., 'trading_metrics', 'events', 'ranking') - use instead of endpoint to see all endpoints in a category",
+                  "Filter by category (e.g., 'trading_metrics', 'events::events_api', 'trades::trades_api', 'trading_metrics::volume_statistic') - use instead of endpoint to see all endpoints in a category",
               },
             },
           },
@@ -218,7 +204,7 @@ export function createMcpServer(): Server {
               category: {
                 type: 'string',
                 description:
-                  "Filter by category (e.g., 'vault', 'strategy_provider', 'liquidity_provider', 'fund', 'user')",
+                  "Filter by category (e.g., 'strategy_vault_info', 'strategy_provider', 'fund_management', 'liquidity_provider', 'user') - use instead of endpoint to see all endpoints in a category",
               },
             },
           },
@@ -269,14 +255,8 @@ export function createMcpServer(): Server {
         case 'search_orderly_docs':
           result = (await searchOrderlyDocs(
             args.query as string,
-            (args.limit as number) || 5
-          )) as ToolResult;
-          break;
-
-        case 'get_sdk_pattern':
-          result = (await getSdkPattern(
-            args.pattern as string,
-            (args.includeExample as boolean) ?? true
+            (args.limit as number) || 5,
+            (args.scope as 'auto' | 'docs' | 'sdk') || 'auto'
           )) as ToolResult;
           break;
 
@@ -402,7 +382,7 @@ export function createMcpServer(): Server {
           uri: 'orderly://api/indexer',
           name: 'Indexer API Reference',
           description:
-            'Indexer API for trading metrics, account events, volume statistics, and rankings',
+            'Indexer API for trading metrics, account events, trades, and volume statistics (rankings endpoints available via endpoint search)',
           mimeType: 'text/markdown',
         },
         {

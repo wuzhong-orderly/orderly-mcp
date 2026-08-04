@@ -127,4 +127,135 @@ describe('searchOrderlyDocs', () => {
       expect(text).toMatch(/Search Results/);
     }
   });
+
+  it('should surface SDK symbols with inline type-accurate records', async () => {
+    // The unified index folds js-sdk symbol data (from @orderly.network/sdk-docs
+    // bundled artifacts) into search. A hook lookup must return the symbol's
+    // signature + provenance inline, with no need for a separate lookup tool.
+    const result = await searchOrderlyDocs('usePositionStream', 5);
+    const text = result.content[0].text;
+    expect(text).toContain('Search Results');
+    expect(text).toContain('`SDK Hook`');
+    expect(text).toMatch(/\*\*Signature:\*\*/);
+    expect(text).toMatch(/```ts/);
+    // Provenance from the SDK bundle
+    expect(text).toContain('**Source:**');
+    // Exact hook name must rank first (dedup + coverage-aware ranking)
+    expect(text).toMatch(/## 1\. usePositionStream/);
+  });
+
+  it('should rank an exact hook-name match at #1', async () => {
+    // Regression guard: duplicate symbol records in the source and the
+    // coverage-vs-score tie-break must not let a fuzzy near-match outrank the
+    // exact symbol (e.g. usePositionHeaderScript above usePositionStream).
+    const result = await searchOrderlyDocs('useOrderEntry', 5);
+    const text = result.content[0].text;
+    expect(text).toMatch(/## 1\. useOrderEntry\b/);
+  });
+
+  it('should support docs-only scope', async () => {
+    // Forcing scope="docs" must keep SDK symbol records out of the results,
+    // even when the query is a hook name.
+    const result = await searchOrderlyDocs('usePositionStream', 5, 'docs');
+    const text = result.content[0].text;
+    expect(text).not.toContain('`SDK Hook`');
+    if (text.includes('Search Results')) {
+      expect(text).toContain(' (docs)');
+    }
+  });
+
+  it('should support sdk-only scope', async () => {
+    // Forcing sdk scope returns inline type-accurate symbol records with the
+    // scope label visible.
+    const result = await searchOrderlyDocs('usePositionStream', 5, 'sdk');
+    const text = result.content[0].text;
+    expect(text).toContain('`SDK Hook`');
+    expect(text).toContain(' (SDK symbols)');
+  });
+
+  it('should auto-detect scope from camelCase queries', async () => {
+    // 'usePositionStream' is clearly an SDK identifier → SDK scope.
+    const result = await searchOrderlyDocs('usePositionStream', 5);
+    const text = result.content[0].text;
+    expect(text).toContain(' (SDK symbols)');
+  });
+
+  it('should auto-detect scope from plain-language queries', async () => {
+    // 'how does the vault work' is prose → docs scope, no SDK-symbol noise.
+    const result = await searchOrderlyDocs('how does the vault work', 5);
+    const text = result.content[0].text;
+    expect(text).toContain(' (docs)');
+  });
+
+  // --- Scope routing for non-symbol identifiers ---------------------------
+  // Page-level components (TradingPage, Portfolio, ...) are camelCased but are
+  // documented in the prose corpus, NOT emitted as type-accurate symbols by
+  // the js-sdk ai-docs pipeline. They must route to docs — not the SDK corpus,
+  // which would surface fuzzy symbol noise like getTradingPanelIds.
+  it('should route a non-symbol camelCase identifier to docs', async () => {
+    const result = await searchOrderlyDocs('TradingPage', 5);
+    const text = result.content[0].text;
+    expect(text).toContain('Search Results');
+    expect(text).toContain(' (docs)');
+    expect(text).toContain('TradingPage');
+    // Must not leak fuzzy SDK-symbol noise for an identifier that isn't a symbol.
+    expect(text).not.toContain('`SDK Hook`');
+    expect(text).not.toContain('`SDK Function`');
+  });
+
+  it('should still route an exact symbol name to SDK even when camelCased', async () => {
+    // 'OrderEntry' is a real component symbol — must route to the SDK corpus.
+    const result = await searchOrderlyDocs('OrderEntry', 5);
+    const text = result.content[0].text;
+    expect(text).toContain(' (SDK symbols)');
+  });
+
+  // --- Symbol-kind render coverage ----------------------------------------
+  // The unified search folds hooks/types/components/functions into one index;
+  // each kind renders a distinct inline block that must be exercised.
+  it('should render SDK components with props', async () => {
+    const result = await searchOrderlyDocs('OrderEntry', 5, 'sdk');
+    const text = result.content[0].text;
+    expect(text).toContain('`SDK Component`');
+    expect(text).toContain('**Component name:**');
+    expect(text).toContain('**Props:**');
+    // At least one prop line renders name + type.
+    expect(text).toMatch(/- `.+` \(`.+`\)/);
+  });
+
+  it('should render SDK types with typeText', async () => {
+    const result = await searchOrderlyDocs('BindReferralCodeSuccessPayload', 5, 'sdk');
+    const text = result.content[0].text;
+    expect(text).toContain('`SDK Type`');
+    expect(text).toContain('**Type:**');
+  });
+
+  it('should render SDK functions with signature, params, and returns', async () => {
+    const result = await searchOrderlyDocs('parseUnits', 5, 'sdk');
+    const text = result.content[0].text;
+    expect(text).toContain('`SDK Function`');
+    expect(text).toMatch(/\*\*Signature:\*\*/);
+    expect(text).toContain('**Parameters:**');
+    expect(text).toMatch(/\*\*Returns:\*\* `bigint`/);
+  });
+
+  it('should render hook params detail, returns, and jsDoc body', async () => {
+    const result = await searchOrderlyDocs('useOrderEntry', 5, 'sdk');
+    const text = result.content[0].text;
+    expect(text).toContain('**Parameters:**');
+    expect(text).toMatch(/\*\*Returns:\*\* `OrderEntryReturn`/);
+    // jsDoc renders as the description body above the signature.
+    expect(text).toContain('Custom hook for managing order entry');
+    // Symbol provenance line.
+    expect(text).toContain('**Package:**');
+    expect(text).toContain('**Source:**');
+  });
+
+  it('should flag deprecated symbols', async () => {
+    const result = await searchOrderlyDocs('useMarket', 5, 'sdk');
+    const text = result.content[0].text;
+    // useMarket is one of the deprecated hooks in the bundle.
+    expect(text).toContain('⚠️');
+    expect(text).toContain('deprecated');
+  });
 });

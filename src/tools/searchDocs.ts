@@ -1,5 +1,6 @@
 import Fuse from 'fuse.js';
 import documentationData from '../data/documentation.json' with { type: 'json' };
+import sdkSymbolsData from '../data/sdk-symbols.json' with { type: 'json' };
 
 export interface SearchResult {
   content: Array<{ type: 'text'; text: string }>;
@@ -20,6 +21,64 @@ interface DocumentationData {
     lastUpdated: string;
     totalChunks: number;
   };
+}
+
+interface SymbolParam {
+  name: string;
+  type: string;
+  optional?: boolean;
+  required?: boolean;
+  defaultValue?: unknown;
+  description?: string;
+}
+
+interface SymbolRecord {
+  name: string;
+  package?: string;
+  sourcePath?: string;
+  jsDoc?: string;
+  deprecated?: boolean;
+  params?: SymbolParam[];
+  returns?: string;
+  displayName?: string;
+  props?: SymbolParam[];
+  typeText?: string;
+}
+
+interface SymbolEntry {
+  id: string;
+  name: string;
+  kind: 'hook' | 'type' | 'component' | 'function';
+  category: string;
+  package: string;
+  sourcePath: string;
+  keywords: string[];
+  searchText: string;
+  record: SymbolRecord;
+}
+
+interface SdkSymbolsData {
+  metadata: {
+    sourcePackage: string;
+    sourceVersion: string;
+    gitSha: string;
+    generatedAt: string;
+    totalSymbols: number;
+  };
+  symbols: SymbolEntry[];
+}
+
+// A unified item in the Fuse index. Both documentation chunks and SDK symbols
+// are normalized to this shape so a single fuzzy search covers both corpora;
+// `payload` preserves the original for kind-specific rendering.
+interface IndexItem {
+  id: string;
+  type: 'doc' | 'symbol';
+  title: string;
+  content: string;
+  category: string;
+  keywords: string[];
+  payload: DocChunk | SymbolEntry;
 }
 
 // Words that carry no domain meaning in search queries.
@@ -140,13 +199,67 @@ function tokenizeQuery(query: string): string[] {
     .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
 }
 
-// Initialize Fuse.js with configuration.
-// We create the Fuse instance lazily to avoid doing heavy work at module load time.
-let fuseInstance: Fuse<DocChunk> | null = null;
+// Lowercased SDK symbol names, used for exact-match intent detection.
+let symbolNameSet: Set<string> | null = null;
 
-function getFuseInstance(): Fuse<DocChunk> {
+function getSymbolNameSet(): Set<string> {
+  if (!symbolNameSet) {
+    symbolNameSet = new Set(
+      (sdkSymbolsData as SdkSymbolsData).symbols.map((s) => s.name.toLowerCase())
+    );
+  }
+  return symbolNameSet;
+}
+
+export type SearchScope = 'auto' | 'docs' | 'sdk';
+
+/**
+ * Heuristic intent detection for 'auto' scope. Routes to the SDK corpus only
+ * when a query token exactly matches a known symbol name (e.g.
+ * "usePositionStream", "OrderEntry", "parseUnits"); plain language ("how much
+ * are fees") routes to the prose documentation corpus.
+ *
+ * A blanket camelCase heuristic is intentionally NOT used: page-level
+ * components like "TradingPage" are camelCased identifiers but are documented
+ * in the prose corpus, NOT emitted as type-accurate symbols by the js-sdk
+ * ai-docs pipeline. Routing them to the SDK corpus would surface fuzzy symbol
+ * noise (e.g. `getTradingPanelIds`) instead of the real documentation.
+ */
+function detectScope(query: string): 'docs' | 'sdk' {
+  const trimmed = query.trim();
+  const tokens = tokenizeQuery(trimmed);
+  if (tokens.some((t) => getSymbolNameSet().has(t))) return 'sdk';
+  return 'docs';
+}
+
+// Initialize the Fuse instance lazily to avoid doing heavy work at module load time.
+let fuseInstance: Fuse<IndexItem> | null = null;
+
+function getFuseInstance(): Fuse<IndexItem> {
   if (!fuseInstance) {
-    const data = documentationData as DocumentationData;
+    const docs = documentationData as DocumentationData;
+    const symbols = sdkSymbolsData as SdkSymbolsData;
+
+    const items: IndexItem[] = [
+      ...docs.chunks.map((chunk) => ({
+        id: chunk.id,
+        type: 'doc' as const,
+        title: chunk.title,
+        content: chunk.content,
+        category: chunk.category,
+        keywords: chunk.keywords,
+        payload: chunk,
+      })),
+      ...symbols.symbols.map((sym) => ({
+        id: sym.id,
+        type: 'symbol' as const,
+        title: sym.name,
+        content: sym.searchText,
+        category: sym.category,
+        keywords: sym.keywords,
+        payload: sym,
+      })),
+    ];
 
     const fuseOptions = {
       keys: [
@@ -165,46 +278,66 @@ function getFuseInstance(): Fuse<DocChunk> {
       ignoreLocation: true,
     };
 
-    fuseInstance = new Fuse(data.chunks, fuseOptions);
+    fuseInstance = new Fuse(items, fuseOptions);
   }
 
   return fuseInstance;
 }
 
 interface MergedResult {
-  chunk: DocChunk;
+  item: IndexItem;
   score: number;
   hits: number;
 }
 
 /**
  * Multi-token search: run Fuse for each token individually, then merge.
- * Chunks matching multiple tokens get a score boost (lower = better).
+ * Items matching multiple tokens get a score boost (lower = better).
+ *
+ * Each token contributes at most one hit per item (the best score for that
+ * token), so `hits` reflects how many distinct query tokens matched — coverage —
+ * and is never inflated by duplicate index entries.
+ *
+ * `allowedTypes` narrows results to one corpus (e.g. docs-only or SDK-only);
+ * disallowed items are filtered before the per-token window so the limit budget
+ * is not consumed by the excluded corpus.
  */
-function multiTokenSearch(fuse: Fuse<DocChunk>, tokens: string[], limit: number): MergedResult[] {
-  const resultMap = new Map<string, { chunk: DocChunk; scores: number[]; hits: number }>();
+function multiTokenSearch(
+  fuse: Fuse<IndexItem>,
+  tokens: string[],
+  limit: number,
+  allowedTypes?: Set<IndexItem['type']>
+): MergedResult[] {
+  const resultMap = new Map<string, { item: IndexItem; scores: number[] }>();
 
   for (const token of tokens) {
-    const results = fuse.search(token, { limit: limit * 4 });
+    // When restricting to one corpus, widen the per-token window so the
+    // dominant corpus (968 symbols vs 109 doc chunks) can't crowd the target
+    // corpus's matches out before the type filter runs.
+    const results = fuse.search(token, { limit: allowedTypes ? 2000 : limit * 4 });
+    // Best (lowest) score per id within this token's results.
+    const bestThisToken = new Map<string, { item: IndexItem; score: number }>();
     for (const result of results) {
+      if (allowedTypes && !allowedTypes.has(result.item.type)) continue;
       const score = result.score ?? 1;
       const id = result.item.id;
-      const existing = resultMap.get(id);
-      if (existing) {
-        existing.scores.push(score);
-        existing.hits++;
-      } else {
-        resultMap.set(id, { chunk: result.item, scores: [score], hits: 1 });
-      }
+      const prev = bestThisToken.get(id);
+      if (!prev || score < prev.score) bestThisToken.set(id, { item: result.item, score });
+    }
+    for (const [, { item, score }] of bestThisToken) {
+      const existing = resultMap.get(item.id);
+      if (existing) existing.scores.push(score);
+      else resultMap.set(item.id, { item, scores: [score] });
     }
   }
 
   return [...resultMap.values()]
     .map((entry) => {
       const avgScore = entry.scores.reduce((a, b) => a + b, 0) / entry.scores.length;
-      // Divide by hit count so chunks matching more query tokens rank higher
-      const boostedScore = avgScore / entry.hits;
-      return { chunk: entry.chunk, score: boostedScore, hits: entry.hits };
+      const hits = entry.scores.length;
+      // Divide by hit count so items matching more query tokens rank higher
+      const boostedScore = avgScore / hits;
+      return { item: entry.item, score: boostedScore, hits };
     })
     .filter((r) => r.score < 0.7)
     .sort((a, b) => {
@@ -215,8 +348,85 @@ function multiTokenSearch(fuse: Fuse<DocChunk>, tokens: string[], limit: number)
     .slice(0, limit);
 }
 
-export async function searchOrderlyDocs(query: string, limit: number = 5): Promise<SearchResult> {
-  const data = documentationData as DocumentationData;
+/** Format a single param/prop line with optional/required marker. */
+function formatParam(p: SymbolParam, kind: 'param' | 'prop'): string {
+  const marker = kind === 'param' ? (p.optional ? '?' : '') : p.required ? '' : '?';
+  const head = `- \`${p.name}${marker}\` (\`${p.type}\`)`;
+  return p.description ? `${head} — ${p.description}` : head;
+}
+
+/**
+ * Render an SDK symbol hit as an inline, type-accurate block. This delivers the
+ * symbol's full signature, params/returns/props and source provenance directly
+ * in the search response, so callers need no follow-up lookup tool.
+ */
+function renderSymbol(sym: SymbolEntry, rank: number, relevancePercent: number): string {
+  const rec = sym.record;
+  let text = `## ${rank}. ${sym.name}  \`${sym.category}\`\n\n`;
+  text += `**Relevance:** ${relevancePercent}%`;
+
+  const prov = [sym.package, sym.sourcePath].filter(Boolean).join(' · **Source:** ');
+  if (prov) text += ` | **Package:** ${prov}`;
+  if (rec.deprecated) text += ` | ⚠️ **deprecated**`;
+  text += `\n\n`;
+
+  if (rec.jsDoc) {
+    text += `${rec.jsDoc}\n\n`;
+  }
+
+  if (sym.kind === 'hook' || sym.kind === 'function') {
+    const params = (rec.params || [])
+      .map((p) => `${p.name}${p.optional ? '?' : ''}: ${p.type}`)
+      .join(', ');
+    const ret = rec.returns || 'void';
+    text += '**Signature:**\n```ts\n';
+    text += `${sym.name}(${params}): ${ret}\n`;
+    text += '```\n\n';
+    if (rec.params && rec.params.length > 0) {
+      text += `**Parameters:**\n${rec.params.map((p) => formatParam(p, 'param')).join('\n')}\n\n`;
+    }
+    if (rec.returns) {
+      text += `**Returns:** \`${rec.returns}\`\n\n`;
+    }
+  } else if (sym.kind === 'component') {
+    text += `**Component name:** \`${rec.displayName || sym.name}\`\n\n`;
+    if (rec.props && rec.props.length > 0) {
+      text += `**Props:**\n${rec.props.map((p) => formatParam(p, 'prop')).join('\n')}\n\n`;
+    }
+  } else if (sym.kind === 'type') {
+    if (rec.typeText) {
+      text += `**Type:** \`${rec.typeText}\`\n\n`;
+    }
+  }
+
+  text += `---\n\n`;
+  return text;
+}
+
+function renderDoc(chunk: DocChunk, rank: number, result: MergedResult): string {
+  const relevancePercent = Math.round((1 - result.score) * 100);
+  let text = `## ${rank}. ${chunk.title}\n\n`;
+  text += `**Category:** ${chunk.category} | **Relevance:** ${relevancePercent}%`;
+  if (result.hits > 1) {
+    text += ` | **Matched ${result.hits} terms**`;
+  }
+  text += `\n\n`;
+  text += `${chunk.content}\n\n`;
+
+  if (chunk.keywords.length > 0) {
+    text += `*Keywords: ${chunk.keywords.join(', ')}*\n\n`;
+  }
+
+  text += `---\n\n`;
+  return text;
+}
+
+export async function searchOrderlyDocs(
+  query: string,
+  limit: number = 5,
+  scope: SearchScope = 'auto'
+): Promise<SearchResult> {
+  const docs = documentationData as DocumentationData;
 
   if (!query.trim()) {
     return {
@@ -242,11 +452,18 @@ export async function searchOrderlyDocs(query: string, limit: number = 5): Promi
     };
   }
 
+  // 'auto' detects intent: a query that matches a known symbol name routes to
+  // the SDK corpus; everything else routes to the prose documentation corpus.
+  const effectiveScope = scope === 'auto' ? detectScope(query) : scope;
+  const allowedTypes: Set<IndexItem['type']> = new Set([
+    effectiveScope === 'sdk' ? 'symbol' : 'doc',
+  ]);
+
   const fuse = getFuseInstance();
-  const mergedResults = multiTokenSearch(fuse, tokens, limit);
+  const mergedResults = multiTokenSearch(fuse, tokens, limit, allowedTypes);
 
   if (mergedResults.length === 0) {
-    const categories = [...new Set(data.chunks.map((c) => c.category))];
+    const categories = [...new Set(docs.chunks.map((c) => c.category))];
 
     return {
       content: [
@@ -257,42 +474,25 @@ export async function searchOrderlyDocs(query: string, limit: number = 5): Promi
             `- SDK hooks (e.g., "useOrderEntry", "usePositionStream")\n` +
             `- Protocol concepts (e.g., "vault", "leverage", "funding rate")\n` +
             `- Available categories: ${categories.join(', ')}\n\n` +
-            `Or use specific tools like:\n` +
-            `- "get_sdk_pattern" for hook examples\n` +
-            `- "explain_workflow" for step-by-step guides`,
+            `Or use "explain_workflow" for step-by-step guides.`,
         },
       ],
     };
   }
 
   // Build response
-  let text = `# Search Results for "${query}"\n\n`;
+  const scopeLabel = effectiveScope === 'sdk' ? ' (SDK symbols)' : ' (docs)';
+  let text = `# Search Results for "${query}"${scopeLabel}\n\n`;
   text += `Found ${mergedResults.length} relevant section${mergedResults.length !== 1 ? 's' : ''}:\n\n`;
 
   for (let i = 0; i < mergedResults.length; i++) {
     const result = mergedResults[i];
-    const chunk = result.chunk;
     const relevancePercent = Math.round((1 - result.score) * 100);
-
-    text += `## ${i + 1}. ${chunk.title}\n\n`;
-    text += `**Category:** ${chunk.category} | **Relevance:** ${relevancePercent}%`;
-    if (result.hits > 1) {
-      text += ` | **Matched ${result.hits} terms**`;
+    if (result.item.type === 'symbol') {
+      text += renderSymbol(result.item.payload as SymbolEntry, i + 1, relevancePercent);
+    } else {
+      text += renderDoc(result.item.payload as DocChunk, i + 1, result);
     }
-    text += `\n\n`;
-    text += `${chunk.content}\n\n`;
-
-    if (chunk.keywords.length > 0) {
-      text += `*Keywords: ${chunk.keywords.join(', ')}*\n\n`;
-    }
-
-    text += `---\n\n`;
-  }
-
-  // Add note about SDK patterns
-  const hasSdkContent = mergedResults.some((r) => r.chunk.category === 'SDK');
-  if (!hasSdkContent && tokens.some((t) => t.includes('use') || t.includes('hook'))) {
-    text += `\n**Tip:** For specific SDK hook examples, try using the "get_sdk_pattern" tool with the hook name.\n`;
   }
 
   return {

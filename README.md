@@ -53,7 +53,7 @@ This MCP server enables AI assistants to answer questions about Orderly Network 
 - **Workflow Guides**: Step-by-step explanations of common development tasks
 - **Component Guides**: Patterns for building trading UI components
 - **API Reference**: REST and WebSocket endpoint documentation
-- **Indexer API**: Trading metrics, account events, volume statistics, and rankings
+- **Indexer API**: Trading metrics, account events, trades, and volume statistics
 
 ## Installation
 
@@ -278,30 +278,10 @@ Search Orderly documentation for specific topics, concepts, or questions.
 - "order types"
 - "leverage calculation"
 
-### 2. `get_sdk_pattern`
+> **SDK symbols** (hooks, types, components, functions) are now surfaced inline by
+> `search_orderly_docs` — see [SDK symbol search](#sdk-symbol-search) below.
 
-Get code examples and patterns for Orderly SDK v2 hooks and complete DEX components.
-
-**Parameters**:
-
-- `pattern` (string, required): Hook or pattern name (e.g., 'useOrderEntry', 'wallet-connection', 'LightweightChart')
-- `includeExample` (boolean, optional): Include full code example (default: true)
-
-**Available patterns**:
-
-- **Account**: `useAccount`, `useWalletConnector`
-- **Orders**: `useOrderEntry`, `useOrderStream`
-- **Positions**: `usePositionStream`, `useCollateral`
-- **Market Data**: `useOrderbookStream`, `useMarkPrice`, `useTickerStream`
-- **Chains**: `useChains`
-- **Assets**: `useDeposit`
-- **Charts**: `LightweightChart`, `TradingViewWidgetSetup`, `Real-timeKlineDataviaWebSocket`
-- **Trading Components**: `CreateOrder`, `Orderbook`, `SymbolHeader`, `SymbolSelection`
-- **Position Components**: `Positions`, `UpdatePosition`, `ClosePosition`
-- **Wallet Components**: `ConnectWalletButton`, `WalletConnection`, `EvmDropdownMenu`
-- **WebSocket Services**: `websocket.service` (real-time kline data)
-
-### 3. `get_contract_addresses`
+### 2. `get_contract_addresses`
 
 Get smart contract addresses for Orderly on specific chains.
 
@@ -316,7 +296,7 @@ Get smart contract addresses for Orderly on specific chains.
 - EVM: ethereum, arbitrum, optimism, base, mantle, solana
 - Orderly L2: orderlyL2
 
-### 4. `explain_workflow`
+### 3. `explain_workflow`
 
 Get step-by-step explanation of common development workflows.
 
@@ -332,7 +312,7 @@ Get step-by-step explanation of common development workflows.
 - `set-tp-sl`: Set Take Profit and Stop Loss
 - `subaccount-management`: Create and manage subaccounts
 
-### 5. `get_api_info`
+### 4. `get_api_info`
 
 Get information about Orderly REST API or WebSocket streams.
 
@@ -341,21 +321,25 @@ Get information about Orderly REST API or WebSocket streams.
 - `type` (string, required): 'rest', 'websocket', or 'auth'
 - `endpoint` (string, optional): Specific endpoint or stream name
 
-### 6. `get_indexer_api_info`
+### 5. `get_indexer_api_info`
 
-Get information about Orderly Indexer API for trading metrics, account events, volume statistics, and rankings.
+Get information about Orderly Indexer API for trading metrics, account events, trades, and volume statistics (rankings endpoints available via endpoint search).
 
 **Parameters**:
 
 - `endpoint` (string, optional): Specific endpoint path or name (e.g., '/events_v2', 'daily_volume', 'ranking/positions')
-- `category` (string, optional): Filter by category (e.g., 'trading_metrics', 'events', 'ranking')
+- `category` (string, optional): Filter by category (e.g., 'trading_metrics', 'events::events_api', 'trades::trades_api')
 
 **Available categories**:
 
 - **Trading Metrics**: Daily volume, fees, perp trading data (`/daily_volume`, `/daily_trading_fee`, `/daily_orderly_perp`)
 - **Events**: Account events with pagination (`/events_v2`) - trades, settlements, liquidations, transactions
 - **Volume Statistics**: Account and broker volume stats (`/get_account_volume_statistic`, `/get_broker_volume_statistic`)
-- **Rankings**: Positions, PnL, trading volume, deposits/withdrawals (`/ranking/positions`, `/ranking/realized_pnl`, `/ranking/trading_volume`, `/ranking/deposit`, `/ranking/withdraw`)
+- **Trades**: Trade data with filters (`/trades`)
+
+**Rankings** (no category; search by endpoint):
+
+- Positions, PnL, trading volume, deposits/withdrawals (`/ranking/positions`, `/ranking/realized_pnl`, `/ranking/trading_volume`, `/ranking/deposit`, `/ranking/withdraw`)
 
 **Example**:
 
@@ -370,7 +354,7 @@ get_indexer_api_info endpoint="/events_v2"
 get_indexer_api_info category="trading_metrics"
 ```
 
-### 7. `get_component_guide`
+### 6. `get_component_guide`
 
 Get guidance on building React UI components using Orderly SDK.
 
@@ -386,7 +370,7 @@ Get guidance on building React UI components using Orderly SDK.
 - `positions`: Position management table
 - `wallet-connector`: Wallet connection UI
 
-### 8. `get_orderly_one_api_info`
+### 7. `get_orderly_one_api_info`
 
 Get information about Orderly One API for DEX creation, graduation, and management.
 
@@ -458,13 +442,13 @@ AI uses search_orderly_docs with query "vault system"
 → Returns explanation of cross-chain vault architecture
 ```
 
-### Getting SDK Pattern
+### Searching SDK Symbols
 
 ```
 User: "Show me how to use useOrderEntry"
 
-AI uses get_sdk_pattern with pattern "useOrderEntry"
-→ Returns hook documentation with usage example
+AI uses search_orderly_docs with query "useOrderEntry"
+→ Returns inline SDK hook record: signature, params, returns, source path
 ```
 
 ### Looking Up Contracts
@@ -503,7 +487,7 @@ This MCP server includes embedded data from:
 3. **DEX Examples**: Complete working components from the [example-dex](https://github.com/orderlynetwork/example-dex) repository
 4. **Contract Addresses**: All deployed contracts across supported chains
 5. **API Specifications**: REST and WebSocket endpoints
-6. **Indexer API**: Trading metrics, account events, volume statistics, and rankings
+6. **Indexer API**: Trading metrics, account events, trades, and volume statistics
 7. **Orderly One API**: DEX creation, graduation, and management API documentation
 8. **Workflow Guides**: Common development task explanations
 
@@ -516,8 +500,7 @@ orderly-mcp/
 │   ├── http-server.ts           # HTTP server entry (stateless mode)
 │   ├── server.ts                # Shared MCP server logic
 │   ├── tools/
-│   │   ├── searchDocs.ts        # Documentation search
-│   │   ├── sdkPatterns.ts       # SDK pattern lookup
+│   │   ├── searchDocs.ts        # Unified doc + SDK symbol search
 │   │   ├── contracts.ts         # Contract address lookup
 │   │   ├── workflows.ts         # Workflow explanations
 │   │   ├── apiInfo.ts           # API documentation
@@ -530,7 +513,7 @@ orderly-mcp/
 │   │   └── index.ts             # Resource handlers
 │   └── data/
 │       ├── documentation.json   # Searchable documentation chunks
-│       ├── sdk-patterns.json    # SDK patterns and examples
+│       ├── sdk-symbols.json     # Type-accurate SDK symbols (hooks/types/components/functions)
 │       ├── contracts.json       # Contract addresses
 │       ├── workflows.json       # Workflow explanations
 │       ├── api.json             # API specifications
@@ -587,13 +570,11 @@ node scripts/analyze_telegram_chats.js      # 💰 costs money → tg_analysis.j
 #    (clones OrderlyNetwork/documentation-public automatically)
 node scripts/analyze_docs.js
 
-# 3. Get SDK patterns from source                                      🆓 free
-node scripts/analyze_sdk.js
+# 3. Get type-accurate SDK symbols from npm                            🆓 free
+node scripts/generate_sdk_symbols.js
 
-# 4. Get DEX examples from example-dex repo                            🆓 free
-git clone --depth 1 https://github.com/orderlynetwork/example-dex.git /tmp/example-dex
-node scripts/analyze_example_dex.js
-node scripts/enrich_sdk_patterns_with_examples.js
+# 4. Get component-building guides from SDK source                      🆓 free
+node scripts/analyze_sdk.js
 
 # 5. Generate documentation and workflows                              💰 costs money
 node scripts/generate_mcp_data.js
@@ -634,8 +615,7 @@ yarn build
 | File                      | Source                         | Generation Script                                                                                 |
 | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------- |
 | **documentation.json**    | Official docs (git: documentation-public) | `generate_mcp_data.js`                                                                            |
-| **sdk-patterns.json**     | SDK source code (GitHub)       | `analyze_sdk.js`                                                                                  |
-| **sdk-patterns.json**     | Example DEX repo (GitHub)      | `analyze_example_dex.js` + `enrich_sdk_patterns_with_examples.js` (add `USE_AI=true` for AI mode) |
+| **sdk-symbols.json**      | `@orderly.network/sdk-docs` npm package | `generate_sdk_symbols.js`                                                                         |
 | **component-guides.json** | SDK source code (GitHub)       | `analyze_sdk.js`                                                                                  |
 | **workflows.json**        | Official docs (git: documentation-public) | `generate_mcp_data.js`                                                                            |
 | **api.json**              | OpenAPI spec                   | `generate_api_from_openapi.js`                                                                    |

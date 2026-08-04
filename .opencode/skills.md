@@ -7,7 +7,7 @@ This skill guides you through updating the Orderly Network MCP server with new d
 The MCP server stores data as JSON files in `src/data/`:
 
 - `documentation.json` - Searchable documentation chunks
-- `sdk-patterns.json` - SDK v2 hook examples
+- `sdk-symbols.json` - Type-accurate SDK symbols (hooks/types/components/functions; generated)
 - `contracts.json` - Smart contract addresses
 - `workflows.json` - Step-by-step guides
 - `api.json` - API endpoints and WebSocket streams
@@ -28,7 +28,7 @@ Update data when:
 | Data Type     | File                             | Schema                                                                              | Test File                          |
 | ------------- | -------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------- |
 | Documentation | `src/data/documentation.json`    | `chunks[] { id, title, content, category, keywords[] }`                             | `src/__tests__/searchDocs.test.ts` |
-| SDK Patterns  | `src/data/sdk-patterns.json`     | `categories[] { name, patterns[] }`                                                 | Test via searchDocs                |
+| SDK Symbols   | `src/data/sdk-symbols.json`      | `{ metadata, symbols[] { id, name, kind, category, package, sourcePath, keywords[], searchText, record } }` | `src/__tests__/searchDocs.test.ts` |
 | Contracts     | `src/data/contracts.json`        | `{ chain: { chainId, contracts: { name: { mainnet?, testnet?, description? } } } }` | `src/__tests__/contracts.test.ts`  |
 | Workflows     | `src/data/workflows.json`        | `workflows[] { name, description, steps[], prerequisites? }`                        | Manual verification                |
 | API           | `src/data/api.json`              | `{ rest: { endpoints[] }, websocket: { streams[] }, auth: {} }`                     | Manual verification                |
@@ -38,10 +38,13 @@ Update data when:
 
 ### Step 1: Identify What to Update
 
-**If adding SDK documentation:**
+**If refreshing SDK symbols (hooks/types/components/functions):**
 
-- Check if it fits existing category in `sdk-patterns.json`
-- Determine if it's a new hook or an update to existing
+- Do NOT hand-edit `sdk-symbols.json` — it is generated from the published
+  `@orderly.network/sdk-docs` npm package.
+- Run `node scripts/generate_sdk_symbols.js` (🆓 free) to regenerate.
+- To pin a version: `SDK_DOCS_VERSION=1.1.7 node scripts/generate_sdk_symbols.js`.
+- New/changed symbols appear once the js-sdk team publishes a new `sdk-docs` release.
 
 **If adding contract addresses:**
 
@@ -57,19 +60,17 @@ Update data when:
 
 ### Step 2: Edit the JSON File
 
-**Pattern for SDK hooks** (`sdk-patterns.json`):
+**SDK symbols are generated, not hand-edited** (`sdk-symbols.json`):
 
-```json
-{
-  "name": "useHookName",
-  "description": "What this hook does",
-  "installation": "npm install @orderly.network/hooks",
-  "usage": "Brief usage explanation",
-  "example": "import { useHookName } from '@orderly.network/hooks';\n\nfunction Component() {\n  const data = useHookName();\n  return <div>{data}</div>;\n}",
-  "notes": ["Important note 1", "Important note 2"],
-  "related": ["otherHook", "anotherHook"]
-}
+```bash
+# Regenerate from the published @orderly.network/sdk-docs bundle (🆓 free)
+node scripts/generate_sdk_symbols.js
+# Pin a version:
+SDK_DOCS_VERSION=1.1.7 node scripts/generate_sdk_symbols.js
 ```
+
+Each generated symbol carries a trimmed `record` (signature, params, returns, props,
+jsDoc, source path) surfaced inline by `search_orderly_docs`.
 
 **Pattern for contracts** (`contracts.json`):
 
@@ -155,20 +156,15 @@ yarn test:run
 
 ## Common Patterns
 
-### Adding a New SDK Hook
+### Refreshing SDK Symbols
 
-1. Open `src/data/sdk-patterns.json`
-2. Find appropriate category (Account, Order Management, etc.)
-3. Add pattern object to `patterns` array:
-   - `name`: Exact hook name (e.g., "useNewHook")
-   - `description`: One-line summary
-   - `installation`: Package install command
-   - `usage`: When to use it
-   - `example`: Complete working example
-   - `notes`: Gotchas or important details
-   - `related`: Related hooks
-4. Save and validate JSON
-5. Test with `yarn build && yarn test:run`
+1. Run `node scripts/generate_sdk_symbols.js` (🆓 free; pulls latest
+   `@orderly.network/sdk-docs` from npm)
+2. Validate the JSON: `node -e "JSON.parse(require('fs').readFileSync('src/data/sdk-symbols.json'))"`
+3. Test: `yarn build && yarn test:run`
+4. To pin a specific upstream version: `SDK_DOCS_VERSION=<ver> node scripts/generate_sdk_symbols.js`
+
+Do not hand-edit `sdk-symbols.json` — it is overwritten on every regeneration.
 
 ### Adding a New Chain
 

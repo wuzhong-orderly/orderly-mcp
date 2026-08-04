@@ -87,10 +87,11 @@ export async function getSvApiInfo(endpoint?: string, category?: string): Promis
   const data = svApiData as SvApiData;
 
   if (category) {
-    const normalizedCategory = category.toLowerCase().trim();
+    const normalize = (s: string) => s.toLowerCase().trim().replace(/[_-]+/g, ' ');
+    const normalizedCategory = normalize(category);
     const matchingCategory = data.categories.find(
       (c) =>
-        c.name.toLowerCase().includes(normalizedCategory) ||
+        normalize(c.name).includes(normalizedCategory) ||
         c.description.toLowerCase().includes(normalizedCategory)
     );
 

@@ -105,10 +105,11 @@ export async function getIndexerApiInfo(
 
   // If category is specified, show endpoints in that category
   if (category) {
-    const normalizedCategory = category.toLowerCase().trim();
+    const normalize = (s: string) => s.toLowerCase().trim().replace(/[_-]+/g, ' ');
+    const normalizedCategory = normalize(category);
     const matchingCategory = data.categories.find(
       (c) =>
-        c.name.toLowerCase().includes(normalizedCategory) ||
+        normalize(c.name).includes(normalizedCategory) ||
         c.description.toLowerCase().includes(normalizedCategory)
     );
 
@@ -186,8 +187,8 @@ export async function getIndexerApiInfo(
     text += `Use the \\"category\\" parameter to see all endpoints in a specific area:\n\n`;
     text += `\`\`\`\n`;
     text += `get_indexer_api_info category="trading_metrics"\n`;
-    text += `get_indexer_api_info category="events"\n`;
-    text += `get_indexer_api_info category="ranking"\n`;
+    text += `get_indexer_api_info category="events::events_api"\n`;
+    text += `get_indexer_api_info category="trades::trades_api"\n`;
     text += `\`\`\`\n\n`;
 
     text += `### 2. Search by Endpoint\n\n`;
@@ -225,10 +226,11 @@ export async function getIndexerApiInfo(
       const categoryDescriptions: Record<string, string> = {
         'trading metrics':
           'Historical trading metrics including daily volume, fees, and perpetual trading statistics',
-        'trading metrics::volume_statistic':
+        'trading metrics::volume statistic':
           'Volume statistics for individual accounts and brokers',
-        'events::events_api':
+        'events::events api':
           'Account trading events with pagination support (trades, settlements, liquidations, transactions)',
+        'trades::trades api': 'Trade data with filtering by broker, account, address, or symbol',
       };
 
       text += `### ${cat.name}\n\n`;

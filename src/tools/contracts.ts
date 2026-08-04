@@ -21,6 +21,16 @@ export async function getContractAddresses(
   contractType: string = 'all',
   network: string = 'mainnet'
 ): Promise<ContractResult> {
+  if (!chain) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: "Missing required parameter: chain. Use e.g. chain='arbitrum'.",
+        },
+      ],
+    };
+  }
   const normalizedChain = chain.toLowerCase().trim();
   const normalizedContractType = contractType.toLowerCase().trim();
   const normalizedNetwork = network.toLowerCase().trim();

@@ -33,18 +33,51 @@ describe('getResource', () => {
       const result = await getResource('orderly://sdk/hooks?search=use&page=1&limit=5');
       expect(result.contents[0].text).toContain('Page 1');
     });
+
+    it('should surface bundle provenance and hook counts', async () => {
+      const result = await getResource('orderly://sdk/hooks');
+      const text = result.contents[0].text;
+      // Type-accurate bundle metadata from @orderly.network/sdk-docs.
+      expect(text).toContain('@orderly.network/sdk-docs');
+      expect(text).toContain('Hooks by Package');
+      // Hook count is rendered as "**N hooks** across M packages".
+      expect(text).toMatch(/\*\*\d+ hooks\*\* across \d+ packages\./);
+    });
   });
 
   describe('sdk/components', () => {
     it('should return overview without search query', async () => {
       const result = await getResource('orderly://sdk/components');
-      expect(result.contents[0].text).toContain('Component Building Guides');
+      expect(result.contents[0].text).toContain('SDK Components Reference');
       expect(result.contents[0].text).toContain('How to Search');
     });
 
-    it('should search components', async () => {
+    it('should search components from building guides', async () => {
       const result = await getResource('orderly://sdk/components?search=Checkbox');
-      expect(result.contents[0].text).toContain('Component Guides Search Results');
+      expect(result.contents[0].text).toContain('SDK Components Search Results');
+    });
+
+    it('should surface symbol-only components from the SDK bundle', async () => {
+      const result = await getResource('orderly://sdk/components?search=OrderlyAppProvider');
+      expect(result.contents[0].text).toContain('OrderlyAppProvider');
+      expect(result.contents[0].text).toContain('@orderly.network/react-app');
+    });
+
+    it('should distinguish no-match from a missing query', async () => {
+      const result = await getResource('orderly://sdk/components?search=zzzq');
+      expect(result.contents[0].text).toContain('No results found');
+      expect(result.contents[0].text).toContain('for query "zzzq"');
+    });
+
+    it('should report merged guides + symbol-only component counts', async () => {
+      const result = await getResource('orderly://sdk/components');
+      const text = result.contents[0].text;
+      // Components resource merges component-guides.json (building guides)
+      // with symbol-only entries from the SDK bundle; the overview surfaces
+      // both counts so consumers know the corpus is hybrid.
+      expect(text).toMatch(
+        /\*\*\d+ components\*\*: \d+ with building guides, \d+ type-accurate symbol-only\./
+      );
     });
   });
 

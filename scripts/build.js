@@ -49,7 +49,26 @@ function copyDir(src, dest) {
   }
 }
 
+// Recursively remove stale TypeScript declaration files so deleted sources
+// don't ship outdated .d.ts artifacts in dist/
+function removeStaleDeclarations(dir) {
+  if (!fs.existsSync(dir)) return;
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      removeStaleDeclarations(entryPath);
+    } else if (entry.name.endsWith('.d.ts') || entry.name.endsWith('.d.ts.map')) {
+      fs.rmSync(entryPath, { force: true });
+    }
+  }
+}
+
 if (fs.existsSync(dataSrcDir)) {
+  // Clean dist/data first so deleted data files don't persist as stale artifacts
+  if (fs.existsSync(dataDestDir)) {
+    fs.rmSync(dataDestDir, { recursive: true, force: true });
+  }
   copyDir(dataSrcDir, dataDestDir);
   console.log('   ✅ Data files copied');
 }
@@ -197,6 +216,8 @@ async function build() {
       console.log('📝 Generating TypeScript declarations...');
       try {
         const { execSync } = await import('child_process');
+        // Drop stale .d.ts files so tsc regenerates only current sources
+        removeStaleDeclarations(distDir);
         execSync('yarn build:types', { stdio: 'inherit', cwd: projectRoot });
       } catch (e) {
         console.warn('   ⚠️ Type generation failed (non-critical)');

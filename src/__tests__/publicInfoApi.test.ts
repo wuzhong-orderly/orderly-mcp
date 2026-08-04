@@ -28,6 +28,13 @@ describe('getPublicInfoApiInfo', () => {
     expect(text).toContain('`accountState`');
   });
 
+  it('should resolve category case-insensitively with underscore/dash normalization', async () => {
+    const result = await getPublicInfoApiInfo(undefined, 'MARKET_DATA');
+    const text = result.content[0].text;
+    expect(text).toContain('Market data');
+    expect(text).toContain('`orderbook`');
+  });
+
   it('should return full detail for an exact query type', async () => {
     const result = await getPublicInfoApiInfo('accountState');
     const text = result.content[0].text;
