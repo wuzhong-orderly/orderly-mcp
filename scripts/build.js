@@ -14,6 +14,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.join(__dirname, '..');
 
+// Single source of truth for the version: read from package.json and inject it
+// into every bundle as `__APP_VERSION__` (consumed by src/version.ts).
+const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf-8'));
+const appVersion = JSON.stringify(pkg.version);
+
 const isWatch = process.argv.includes('--watch');
 const isDev = process.argv.includes('--dev');
 
@@ -144,6 +149,7 @@ const buildConfigs = [
     },
     define: {
       'process.env.NODE_ENV': isDev ? '"development"' : '"production"',
+      __APP_VERSION__: appVersion,
     },
   },
   {
@@ -161,6 +167,7 @@ const buildConfigs = [
     },
     define: {
       'process.env.NODE_ENV': isDev ? '"development"' : '"production"',
+      __APP_VERSION__: appVersion,
     },
   },
   {
@@ -178,6 +185,7 @@ const buildConfigs = [
     },
     define: {
       'process.env.NODE_ENV': isDev ? '"development"' : '"production"',
+      __APP_VERSION__: appVersion,
     },
   },
 ];

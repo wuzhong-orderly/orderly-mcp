@@ -1,6 +1,6 @@
 {
   "name": "@orderly.network/mcp-server",
-  "version": "1.3.0",
+  "version": "1.4.1",
   "mcpName": "io.github.OrderlyNetwork/orderly-mcp",
   "repository": {
     "type": "git",

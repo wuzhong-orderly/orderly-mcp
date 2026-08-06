@@ -120,7 +120,7 @@ curl https://mcp.orderly.network/health
 {
   "mcpServers": {
     "orderly": {
-      "url": "https://mcp.orderly.network/mcp"
+      "url": "https://mcp.orderly.network/"
     }
   }
 }

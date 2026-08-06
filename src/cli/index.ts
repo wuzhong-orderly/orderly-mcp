@@ -2,13 +2,14 @@
 
 import { Command } from 'commander';
 import { handleInit, handleMcpServer } from './init.js';
+import { APP_VERSION } from '../version.js';
 
 const program = new Command();
 
 program
   .name('orderly-mcp')
   .description('Orderly Network MCP Server CLI')
-  .version('0.1.0')
+  .version(APP_VERSION)
   .option(
     '-c, --cwd <cwd>',
     'the working directory. defaults to the current directory.',

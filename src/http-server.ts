@@ -5,6 +5,7 @@ import express from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { createMcpServer } from './server.js';
+import { APP_VERSION } from './version.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,7 +31,7 @@ app.use((_req, res, next) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', server: 'orderly-network-mcp', version: '0.1.0' });
+  res.json({ status: 'ok', server: 'orderly-network-mcp', version: APP_VERSION });
 });
 
 // Session management - map to store transports by session ID

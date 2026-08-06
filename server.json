@@ -6,12 +6,18 @@
     "url": "https://github.com/OrderlyNetwork/orderly-mcp",
     "source": "github"
   },
-  "version": "1.3.0",
+  "version": "1.4.1",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.orderly.network/"
+    }
+  ],
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@orderly.network/mcp-server",
-      "version": "1.3.0",
+      "version": "1.4.1",
       "transport": {
         "type": "stdio"
       }

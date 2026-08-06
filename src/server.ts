@@ -15,6 +15,7 @@ import { getOrderlyOneApiInfo } from './tools/orderlyOneApi.js';
 import { getSvApiInfo } from './tools/svApi.js';
 import { getPublicInfoApiInfo } from './tools/publicInfoApi.js';
 import { getResource } from './resources/index.js';
+import { APP_VERSION } from './version.js';
 
 // Common result type for all tools
 export interface ToolResult {
@@ -27,7 +28,7 @@ export function createMcpServer(): Server {
   const server = new Server(
     {
       name: 'orderly-network-mcp',
-      version: '0.1.0',
+      version: APP_VERSION,
     },
     {
       capabilities: {
