@@ -1,10 +1,27 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { searchOrderlyDocs, clearSearchCache } from '../tools/searchDocs.js';
+
+const feeTierMarkdown = `# Trading fees
+### Builder Staking programme
+Builders qualify through volume or staking. Crypto and RWA use the same base fees.
+<Tabs>
+  <Tab title="Public">Base taker fee (crypto and RWA) | 3.00
+Maker rebate cap (crypto and RWA) | 0.00</Tab>
+  <Tab title="Silver">Requirements: ≥ $50M or 100K ORDER; 2.75 / -0.05</Tab>
+  <Tab title="Gold">Requirements: ≥ $200M or 300K ORDER; 2.50 / -0.10</Tab>
+  <Tab title="Platinum">Requirements: ≥ $750M or 3M ORDER; 2.00 / -0.15</Tab>
+  <Tab title="Diamond">Requirements: ≥ $2B or 7M ORDER; 1.00 / -0.20</Tab>
+</Tabs>`;
+
+function mockFeeTierDoc(markdown = feeTierMarkdown): void {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(markdown)));
+}
 
 describe('searchOrderlyDocs', () => {
   beforeEach(() => {
     // Clear the Fuse cache before each test to ensure fresh searches
     clearSearchCache();
+    vi.unstubAllGlobals();
   });
 
   it('should find documentation by keyword', async () => {
@@ -98,6 +115,40 @@ describe('searchOrderlyDocs', () => {
     const result = await searchOrderlyDocs('how to connect wallet', 5);
     expect(result.content[0].text).toContain('Search Results');
     expect(result.content[0].text).not.toContain('No results found');
+  });
+
+  it('should return the canonical builder fee tiers', async () => {
+    mockFeeTierDoc();
+    const result = await searchOrderlyDocs('broker fee tiers', 10);
+    const text = result.content[0].text;
+
+    expect(text).toContain('Crypto and RWA use the same base fees');
+    expect(text).toContain('Requirements: ≥ $50M or 100K ORDER; 2.75 / -0.05');
+    expect(text).toContain('Requirements: ≥ $200M or 300K ORDER; 2.50 / -0.10');
+    expect(text).toContain('Requirements: ≥ $750M or 3M ORDER; 2.00 / -0.15');
+    expect(text).toContain('Requirements: ≥ $2B or 7M ORDER; 1.00 / -0.20');
+    expect(text).not.toContain('$10B');
+    expect(fetch).toHaveBeenCalledWith(
+      'https://orderly.network/docs/introduction/trade-on-orderly/trading-basics/trading-fees',
+      expect.objectContaining({ headers: { Accept: 'text/markdown' } })
+    );
+  });
+
+  it('should use the canonical table for RWA fee-tier queries', async () => {
+    mockFeeTierDoc();
+    const result = await searchOrderlyDocs('RWA builder fees', 5);
+    const text = result.content[0].text;
+
+    expect(text).toContain('Crypto and RWA use the same base fees');
+    expect(text).toContain('Requirements: ≥ $2B or 7M ORDER; 1.00 / -0.20');
+  });
+
+  it('should reject an incomplete canonical fee document', async () => {
+    mockFeeTierDoc('# Trading fees\n### Builder Staking programme\n<Tab title="Public">');
+
+    await expect(searchOrderlyDocs('broker fee tiers', 5)).rejects.toThrow(
+      'unexpected format: missing Silver tier'
+    );
   });
 
   it('should handle queries that reduce to a single meaningful term', async () => {

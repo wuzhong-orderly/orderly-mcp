@@ -1,5 +1,6 @@
 import Fuse from 'fuse.js';
 import workflowsData from '../data/workflows.json' with { type: 'json' };
+import { isBuilderFeeTierQuery, renderBuilderFeeTiers } from './builderFeeTiers.js';
 
 export interface WorkflowResult {
   content: Array<{ type: 'text'; text: string }>;
@@ -138,6 +139,11 @@ export async function explainWorkflow(workflow: string): Promise<WorkflowResult>
         },
       ],
     };
+  }
+
+  // Keep mutable fee-tier numbers out of AI-generated workflow summaries.
+  if (isBuilderFeeTierQuery(workflow)) {
+    return { content: [{ type: 'text', text: await renderBuilderFeeTiers() }] };
   }
 
   const tokens = tokenizeQuery(workflow);

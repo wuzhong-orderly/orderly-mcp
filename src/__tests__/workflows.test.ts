@@ -1,7 +1,28 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { explainWorkflow, clearWorkflowCache } from '../tools/workflows.js';
 
 describe('explainWorkflow', () => {
+  it('should use canonical data for builder fee tiers', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(`### Builder Staking programme
+<Tab title="Public">Base taker fee (crypto and RWA) | 3.00; Maker rebate cap (crypto and RWA) | 0.00</Tab>
+<Tab title="Silver">≥ $50M / 100K ORDER / 2.75 / -0.05</Tab>
+<Tab title="Gold">≥ $200M / 300K ORDER / 2.50 / -0.10</Tab>
+<Tab title="Platinum">≥ $750M / 3M ORDER / 2.00 / -0.15</Tab>
+<Tab title="Diamond">≥ $2B / 7M ORDER / 1.00 / -0.20</Tab>`)
+      )
+    );
+    const result = await explainWorkflow('builder staking fee tiers');
+    const text = result.content[0].text;
+
+    expect(text).toContain('≥ $200M / 300K ORDER / 2.50 / -0.10');
+    expect(text).toContain('≥ $750M / 3M ORDER / 2.00 / -0.15');
+    expect(text).not.toContain('$10B');
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     clearWorkflowCache();
   });

@@ -1,6 +1,7 @@
 import Fuse from 'fuse.js';
 import documentationData from '../data/documentation.json' with { type: 'json' };
 import sdkSymbolsData from '../data/sdk-symbols.json' with { type: 'json' };
+import { isBuilderFeeTierQuery, renderBuilderFeeTiers } from './builderFeeTiers.js';
 
 export interface SearchResult {
   content: Array<{ type: 'text'; text: string }>;
@@ -437,6 +438,13 @@ export async function searchOrderlyDocs(
         },
       ],
     };
+  }
+
+  // Fee tiers are mutable commercial data and must come from the canonical,
+  // structured record rather than AI-generated documentation summaries. Those
+  // summaries can contain historical fee schedules after incremental updates.
+  if (scope !== 'sdk' && isBuilderFeeTierQuery(query)) {
+    return { content: [{ type: 'text', text: await renderBuilderFeeTiers() }] };
   }
 
   const tokens = tokenizeQuery(query);
